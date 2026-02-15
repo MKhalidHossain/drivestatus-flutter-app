@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 base class ApiEndpoints {
+  static const String socketUrl = _LiveHostUrls.socketUrl;
   // static const String socketUrl = _LiveHostUrls.socketUrl;
 
   static const String baseUrl = _LiveHostUrls.baseUrl;
@@ -203,12 +204,15 @@ base class ApiEndpoints {
       _Ticket.getTicketById(ticketId);
 }
 
-class _LocalHostWifi {
-  static const String socketUrl =
-      'https://backend-bigghustle-icpx.onrender.com';
-  static const String baseUrl = 'https://api.drivestatusllc.com/api/v1';
+class _LocalHostWifi { 
+   static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
+   static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
+  //static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
+
   // static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
 }
+
+
 
 class _LiveHostUrls {
   // static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
