@@ -403,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   _QuickAccessCard(
                     size: size,
-                    label: 'Drivers posts',
+                    label: 'Teen Driver posts',
                     icon: Icon(
                       Icons.school_outlined,
                       size: size.width * 0.07,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../core/constants/app_routes.dart';
 import '../../../core/notifiers/snackbar_notifier.dart';
 import '../../../core/services/app_pigeon/app_pigeon.dart';
@@ -112,7 +111,7 @@ class _TeenDriversScreenState extends State<TeenDriversScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Drivers Posts',
+          'Teen Driver posts',
           style: TextStyle(
             fontSize: (size.width * 0.055).clamp(18.0, 24.0),
             fontWeight: FontWeight.w600,

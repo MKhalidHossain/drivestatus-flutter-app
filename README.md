@@ -1,6 +1,6 @@
 # Bighustle (flutter_bighustle)
 
-Bighustle is a Flutter app focused on teen driver community content, learning resources, licensing workflows, tickets, and account management. The project uses a feature-module layout with GetX for dependency injection, a centralized networking layer, and explicit route definitions for every screen.
+Bighustle is a Flutter app focused on driver community content, learning resources, licensing workflows, tickets, and account management. The project uses a feature-module layout with GetX for dependency injection, a centralized networking layer, and explicit route definitions for every screen.
 
 ## Overview
 - App name: Bighustle

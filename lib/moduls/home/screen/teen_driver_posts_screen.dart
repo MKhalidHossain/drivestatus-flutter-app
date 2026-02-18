@@ -77,7 +77,7 @@ class _TeenDriverPostsScreenState extends State<TeenDriverPostsScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Teen driver posts',
+          'Driver posts',
           style: TextStyle(
             fontSize: (size.width * 0.055).clamp(18.0, 24.0),
             fontWeight: FontWeight.w600,
