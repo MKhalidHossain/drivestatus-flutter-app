@@ -397,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     iconBackground: const Color(0xFFFFF4DB),
                     onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.teenDriverPosts);
+                      Navigator.pushNamed(context, AppRoutes.community);
                     },
                   ),
 

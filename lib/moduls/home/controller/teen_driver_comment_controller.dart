@@ -13,6 +13,7 @@ class TeenDriverCommentController extends ChangeNotifier {
   TeenDriverCommentController({required this.snackbarNotifier});
 
   static final Map<String, _CommunityCache> _cacheByPostId = {};
+  static const String _globalCacheKey = '__global_community__';
 
   String _text = '';
   bool _isSubmitting = false;
@@ -44,15 +45,13 @@ class TeenDriverCommentController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadComments({required String postId}) async {
+  Future<void> loadComments({String postId = ''}) async {
     final trimmedPostId = postId.trim();
-    if (trimmedPostId.isEmpty) {
-      snackbarNotifier.notifyError(message: 'Post id is missing.');
-      return;
-    }
+    final isGlobalMode = trimmedPostId.isEmpty;
 
     _currentPostId = trimmedPostId;
-    final cached = _cacheByPostId[trimmedPostId];
+    final cacheKey = _cacheKey(trimmedPostId);
+    final cached = _cacheByPostId[cacheKey];
     if (cached != null) {
       _applyCache(cached);
       _hasLoaded = true;
@@ -76,27 +75,41 @@ class TeenDriverCommentController extends ChangeNotifier {
       },
       (success) {
         final posts = success.data ?? [];
-        List<TeenDriverCommentResponseModel> postComments = [];
-        for (final post in posts) {
-          if (post.id == trimmedPostId) {
-            postComments = post.comments;
-            _likesCount = post.likesCount;
-            if (currentUser.id.isNotEmpty &&
-                post.likes.contains(currentUser.id)) {
-              _isLiked = true;
-              _likeUserName =
-                  currentUser.name.isNotEmpty ? currentUser.name : 'You';
-            } else {
-              _isLiked = false;
-              _likeUserName = '';
-            }
-            break;
+        if (isGlobalMode) {
+          final allComments = <TeenDriverCommentResponseModel>[];
+          for (final post in posts) {
+            allComments.addAll(post.comments);
           }
+          allComments.sort(_sortByCreatedAt);
+          _comments
+            ..clear()
+            ..addAll(allComments);
+          _likesCount = 0;
+          _isLiked = false;
+          _likeUserName = '';
+        } else {
+          List<TeenDriverCommentResponseModel> postComments = [];
+          for (final post in posts) {
+            if (post.id == trimmedPostId) {
+              postComments = post.comments;
+              _likesCount = post.likesCount;
+              if (currentUser.id.isNotEmpty &&
+                  post.likes.contains(currentUser.id)) {
+                _isLiked = true;
+                _likeUserName =
+                    currentUser.name.isNotEmpty ? currentUser.name : 'You';
+              } else {
+                _isLiked = false;
+                _likeUserName = '';
+              }
+              break;
+            }
+          }
+          _comments
+            ..clear()
+            ..addAll(postComments);
         }
-        _comments
-          ..clear()
-          ..addAll(postComments);
-        _cacheByPostId[trimmedPostId] = _CommunityCache(
+        _cacheByPostId[cacheKey] = _CommunityCache(
           comments: List<TeenDriverCommentResponseModel>.from(_comments),
           likesCount: _likesCount,
           isLiked: _isLiked,
@@ -110,7 +123,7 @@ class TeenDriverCommentController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<TeenDriverCommentResponseModel?> submit({required String postId}) async {
+  Future<TeenDriverCommentResponseModel?> submit({String postId = ''}) async {
     if (_text.isEmpty) {
       snackbarNotifier.notifyError(message: 'Please enter a comment.');
       return null;
@@ -118,16 +131,21 @@ class TeenDriverCommentController extends ChangeNotifier {
     if (_isSubmitting) {
       return null;
     }
+    final trimmedPostId = postId.trim();
+    final isGlobalMode = trimmedPostId.isEmpty;
 
     _isSubmitting = true;
     notifyListeners();
 
+    final repository = Get.find<TeenDriverExperienceInterface>();
+    final request = TeenDriverCommentRequestModel(text: _text);
     TeenDriverCommentResponseModel? createdComment;
-    final result = await Get.find<TeenDriverExperienceInterface>()
-        .addTeenDriverPostComment(
-      postId: postId,
-      param: TeenDriverCommentRequestModel(text: _text),
-    );
+    final result = isGlobalMode
+        ? await repository.addTeenDriverGlobalComment(param: request)
+        : await repository.addTeenDriverPostComment(
+            postId: trimmedPostId,
+            param: request,
+          );
 
     result.fold(
       (failure) {
@@ -228,15 +246,37 @@ class TeenDriverCommentController extends ChangeNotifier {
   }
 
   void _cacheCurrentState() {
-    if (_currentPostId.isEmpty) {
-      return;
-    }
-    _cacheByPostId[_currentPostId] = _CommunityCache(
+    _cacheByPostId[_cacheKey(_currentPostId)] = _CommunityCache(
       comments: List<TeenDriverCommentResponseModel>.from(_comments),
       likesCount: _likesCount,
       isLiked: _isLiked,
       likeUserName: _likeUserName,
     );
+  }
+
+  String _cacheKey(String postId) {
+    if (postId.isEmpty) {
+      return _globalCacheKey;
+    }
+    return postId;
+  }
+
+  static int _sortByCreatedAt(
+    TeenDriverCommentResponseModel a,
+    TeenDriverCommentResponseModel b,
+  ) {
+    final aDate = a.createdAt;
+    final bDate = b.createdAt;
+    if (aDate == null && bDate == null) {
+      return 0;
+    }
+    if (aDate == null) {
+      return 1;
+    }
+    if (bDate == null) {
+      return -1;
+    }
+    return aDate.compareTo(bDate);
   }
 }
 

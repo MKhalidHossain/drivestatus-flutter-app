@@ -23,6 +23,11 @@ abstract base class TeenDriverExperienceInterface extends BaseRepository {
     required TeenDriverCommentRequestModel param,
   });
 
+  Future<Either<DataCRUDFailure, Success<TeenDriverCommentResponseModel>>>
+      addTeenDriverGlobalComment({
+    required TeenDriverCommentRequestModel param,
+  });
+
   Future<Either<DataCRUDFailure, Success<List<TeenDriverCommentResponseModel>>>>
       getTeenDriverPostComments({
     required String postId,

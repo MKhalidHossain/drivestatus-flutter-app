@@ -115,6 +115,35 @@ final class TeenDriverExperienceInterfaceImpl
   }
 
   @override
+  Future<Either<DataCRUDFailure, Success<TeenDriverCommentResponseModel>>>
+      addTeenDriverGlobalComment({
+    required TeenDriverCommentRequestModel param,
+  }) async {
+    return asyncTryCatch(
+      tryFunc: () async {
+        final response = await appPigeon.post(
+          ApiEndpoints.addTeenDriverGlobalComment,
+          data: param.toJson(),
+        );
+        final responseBody = response.data is Map
+            ? Map<String, dynamic>.from(response.data)
+            : <String, dynamic>{};
+        final responseData = responseBody['data'];
+        final payload = responseData is Map
+            ? Map<String, dynamic>.from(responseData)
+            : <String, dynamic>{};
+        final message =
+            responseBody['message']?.toString() ?? 'Comment added';
+
+        return Success(
+          message: message,
+          data: TeenDriverCommentResponseModel.fromJson(payload),
+        );
+      },
+    );
+  }
+
+  @override
   Future<Either<DataCRUDFailure, Success<List<TeenDriverCommentResponseModel>>>>
       getTeenDriverPostComments({required String postId}) async {
     return asyncTryCatch(

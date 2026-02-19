@@ -55,9 +55,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       _controller =
           TeenDriverCommentController(snackbarNotifier: _snackbarNotifier);
       _controller.addListener(_onControllerUpdate);
-      if (widget.postId.trim().isNotEmpty) {
-        _controller.loadComments(postId: widget.postId.trim());
-      }
+      _controller.loadComments(postId: widget.postId.trim());
     }
   }
 
@@ -78,14 +76,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
     if (text.isEmpty) {
       return;
     }
-    if (widget.postId.trim().isEmpty) {
-      _snackbarNotifier.notifyError(message: 'Post id is missing.');
-      return;
-    }
+    final postId = widget.postId.trim();
+    final hasPostId = postId.isNotEmpty;
 
     _controller.text = text;
-    final createdComment =
-        await _controller.submit(postId: widget.postId.trim());
+    final createdComment = hasPostId
+        ? await _controller.submit(postId: postId)
+        : await _controller.submit();
     if (!mounted) {
       return;
     }
@@ -94,7 +91,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     }
     _commentController.clear();
     _controller.text = '';
-    await _controller.loadComments(postId: widget.postId.trim());
+    await _controller.loadComments(postId: postId);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) {
@@ -143,8 +140,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     final viewInsets = MediaQuery.of(context).viewInsets;
     final isSubmitting = _initialized ? _controller.isSubmitting : false;
     final hasPostId = widget.postId.trim().isNotEmpty;
-    final canSubmit =
-        _initialized ? _controller.canSubmit && hasPostId : false;
+    final canSubmit = _initialized ? _controller.canSubmit : false;
     final isLoading = _initialized ? _controller.isLoading : false;
     final hasLoaded = _initialized ? _controller.hasLoaded : false;
     final comments = _initialized ? _controller.comments : [];
@@ -205,7 +201,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                           ),
                         );
                       },
-                      separatorBuilder: (_, __) => SizedBox(
+                      separatorBuilder: (context, index) => SizedBox(
                         height: size.height * 0.02,
                       ),
                       itemCount: comments.length,
@@ -222,43 +218,44 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        borderRadius: BorderRadius.circular(size.width * 0.06),
-                        onTap: hasPostId && !isLiking ? _likePost : null,
-                        child: Container(
-                          width: size.width * 0.09,
-                          height: size.width * 0.09,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF666666),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: isLiked ? Colors.red : Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: size.width * 0.03),
-                      Expanded(
-                        child: Text(
-                          _likeMessage(
-                            likesCount: likesCount,
-                            isLiked: isLiked,
-                            likeUserName: likeUserName,
-                          ),
-                          style: TextStyle(
-                            fontSize: (size.width * 0.04).clamp(12.0, 16.0),
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF222222),
+                  if (hasPostId)
+                    Row(
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(size.width * 0.06),
+                          onTap: !isLiking ? _likePost : null,
+                          child: Container(
+                            width: size.width * 0.09,
+                            height: size.width * 0.09,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF666666),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: isLiked ? Colors.red : Colors.white,
+                              size: 18,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: size.height * 0.02),
+                        SizedBox(width: size.width * 0.03),
+                        Expanded(
+                          child: Text(
+                            _likeMessage(
+                              likesCount: likesCount,
+                              isLiked: isLiked,
+                              likeUserName: likeUserName,
+                            ),
+                            style: TextStyle(
+                              fontSize: (size.width * 0.04).clamp(12.0, 16.0),
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF222222),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  SizedBox(height: hasPostId ? size.height * 0.02 : 0),
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: size.width * 0.04,

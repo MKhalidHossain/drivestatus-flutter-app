@@ -179,6 +179,10 @@ base class ApiEndpoints {
   static String addTeenDriverPostComment(String postId) =>
       _TeenDriverExperience.addComment(postId);
 
+  /// ### post
+  static const String addTeenDriverGlobalComment =
+      _TeenDriverExperience.addGlobalComment;
+
   /// ### get
   static String getTeenDriverPostComments(String postId) =>
       _TeenDriverExperience.getComments(postId);
@@ -312,6 +316,7 @@ class _TeenDriverExperience {
       '${ApiEndpoints.baseUrl}/teen/posts';
   static const String createExperience = _teenDriverExperienceRoute;
   static const String teenDriverPosts = _teenDriverExperienceRoute;
+  static const String addGlobalComment = '$_teenDriverExperienceRoute/comments';
   static String addComment(String postId) =>
       '$_teenDriverExperienceRoute/$postId/comments';
   static String getComments(String postId) =>
