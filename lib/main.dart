@@ -146,7 +146,7 @@ class MyApp extends StatelessWidget {
               builder: (_) => const PlanPricingDetailsScreen(),
             );
           case AppRoutes.community:
-            return MaterialPageRoute(builder: (_) => const CommunityScreen());
+            return MaterialPageRoute(builder: (_) => const TeenDriverPostsScreen());
           case AppRoutes.profile:
             return MaterialPageRoute(
               builder: (_) => const ProfileScreen(),

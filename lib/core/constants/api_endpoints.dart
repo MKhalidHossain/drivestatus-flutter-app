@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 base class ApiEndpoints {
-  static const String socketUrl = _LiveHostUrls.socketUrl;
+  static const String socketUrl = _LocalHostWifi.socketUrl;
   // static const String socketUrl = _LiveHostUrls.socketUrl;
 
-  static const String baseUrl = _LiveHostUrls.baseUrl;
+  static const String baseUrl = _LocalHostWifi.baseUrl;
 
   /// ### post
   static const String login = _Auth.login;
@@ -30,6 +30,8 @@ base class ApiEndpoints {
   static const String resetPassword = _Auth.resetPassword;
 
   static const String createNewPassword = _Auth.resetPassword;
+
+  static const String deleteAccount = _Auth.deleteAccount;
 
   /// ### post
   static const String refreshToken = _Auth.refreshToken;
@@ -208,21 +210,18 @@ base class ApiEndpoints {
       _Ticket.getTicketById(ticketId);
 }
 
-class _LocalHostWifi { 
-   static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
-   static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
-  //static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
-
-  // static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
+class _LocalHostWifi {
+  //  static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
+  //  static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
+  static const String socketUrl = 'http://10.10.5.85:5000';
+  static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
 }
-
-
 
 class _LiveHostUrls {
   // static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
   //  static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
-   static const String socketUrl = 'https://api.drivestatusllc.com';
-   static const String baseUrl = 'https://api.drivestatusllc.com/api/v1';
+  static const String socketUrl = 'https://api.drivestatusllc.com';
+  static const String baseUrl = 'https://api.drivestatusllc.com/api/v1';
   // static const String baseUrl = 'http://10.10.5.94:5000/api/v1';
 }
 
@@ -239,6 +238,7 @@ class _Auth {
   static const String verifyEmail = '$_authRoute/verify';
   //static const String registerVerify = '$_authRoute/verify-otp';
   static const String changePassword = '$_authRoute/change-password';
+  static const String deleteAccount = '$_authRoute/account-delete';
   static const String resetPassword = '$_authRoute/reset-password';
 }
 
@@ -347,6 +347,7 @@ class _Ticket {
     }
     return baseUrl;
   }
+
   static String getTicketById(String ticketId) => '$_ticketRoute/$ticketId';
 }
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
 import '../widget/logout_dialog.dart';
 import '../widget/profile_menu_item.dart';
 import 'add_license_info_screen.dart';
 import 'change_password_screen.dart';
+import 'delete_account_screen.dart';
 import 'notification_screen.dart';
 import 'personal_info_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -11,7 +11,6 @@ import 'terms_condition_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
   static const Color _background = Color(0xFFF2F2F2);
 
   @override
@@ -28,7 +27,6 @@ class ProfileScreen extends StatelessWidget {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
         ),
       ),
-      //
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
@@ -48,9 +46,7 @@ class ProfileScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const AddLicenseInfoScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const AddLicenseInfoScreen()),
               );
             },
           ),
@@ -70,7 +66,9 @@ class ProfileScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsScreen(),
+                ),
               );
             },
           ),
@@ -95,6 +93,17 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
           ProfileMenuItem(
+            icon: Icons.delete_outline,
+            title: 'Delete Account',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DeleteAccountScreen()),
+              );
+            },
+            showChevron: false,
+          ),
+          ProfileMenuItem(
             icon: Icons.logout,
             title: 'Log Out',
             onTap: () => showLogoutDialog(context),
@@ -105,17 +114,3 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
-/*
-
-{
-  "fullName": "Rabby",
-  "userPhoto": "https://cdn.example.com/user/photo.png",
-  "licenseNumber": "CS235613131657",
-  "state": "Kingsland",
-  "dateOfBirth": "1990-07-19",
-  "expiryDate": "2026-07-19",
-  "licenseClass": "C",
-  "licensePhoto": "https://cdn.example.com/license/license.jpg"
-}
-
-*/

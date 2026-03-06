@@ -1,10 +1,10 @@
-
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bighustle/core/api_handler/failure.dart';
 import 'package:flutter_bighustle/core/api_handler/success.dart';
 import 'package:flutter_bighustle/core/constants/api_endpoints.dart';
 import 'package:flutter_bighustle/core/services/app_pigeon/app_pigeon.dart';
+import '../model/delete_account_request_model.dart';
 import '../interface/profile_interface.dart';
 import '../model/notification_settings_request_model.dart';
 import '../model/profile_response_model.dart';
@@ -46,8 +46,32 @@ final class ProfileInterfaceImpl extends ProfileInterface {
   }
 
   @override
+  Future<Either<DataCRUDFailure, Success<String>>> deleteAccount({
+    required DeleteAccountRequestModel param,
+  }) {
+    return asyncTryCatch(
+      tryFunc: () async {
+        final response = await appPigeon.delete(
+          ApiEndpoints.deleteAccount,
+          data: param.toJson(),
+        );
+        final responseBody = response.data is Map
+            ? Map<String, dynamic>.from(response.data)
+            : <String, dynamic>{};
+
+        return Success(
+          message:
+              responseBody['message']?.toString() ??
+              'Account deleted successfully',
+          data: responseBody['data']?['email']?.toString() ?? '',
+        );
+      },
+    );
+  }
+
+  @override
   Future<Either<DataCRUDFailure, Success<ProfileResponseModel>>>
-      updateNotificationSettings({
+  updateNotificationSettings({
     required NotificationSettingsRequestModel param,
   }) {
     return asyncTryCatch(
@@ -66,7 +90,8 @@ final class ProfileInterfaceImpl extends ProfileInterface {
         final profile = ProfileResponseModel.fromJson(payload);
 
         return Success(
-          message: responseBody['message']?.toString() ??
+          message:
+              responseBody['message']?.toString() ??
               'Settings updated successfully',
           data: profile,
         );
@@ -110,8 +135,7 @@ final class ProfileInterfaceImpl extends ProfileInterface {
         final profile = ProfileResponseModel.fromJson(payload);
 
         return Success(
-          message:
-              responseBody['message']?.toString() ?? 'Profile updated',
+          message: responseBody['message']?.toString() ?? 'Profile updated',
           data: profile,
         );
       },
@@ -191,5 +215,4 @@ final class ProfileInterfaceImpl extends ProfileInterface {
   //     },
   //   );
   // }
-
 }
