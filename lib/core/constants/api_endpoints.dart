@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 base class ApiEndpoints {
-  static const String socketUrl = _LocalHostWifi.socketUrl;
+  static const String socketUrl = _LiveHostUrls.socketUrl;
   // static const String socketUrl = _LiveHostUrls.socketUrl;
 
-  static const String baseUrl = _LocalHostWifi.baseUrl;
+  static const String baseUrl = _LiveHostUrls.baseUrl;
 
   /// ### post
   static const String login = _Auth.login;
