@@ -77,8 +77,6 @@ assets/
    flutter run
    ```
 
-## Testing
-```bash
 flutter test
 ```
 
