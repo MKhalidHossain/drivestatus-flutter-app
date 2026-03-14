@@ -11,9 +11,9 @@ class SubscribeScreen extends StatefulWidget {
 }
 
 class _SubscribeScreenState extends State<SubscribeScreen> {
-  static const Color _background = Color(0xFFEAF1FF);
-  static const Color _borderBlue = Color(0xFF1F3D7A);
-  static const Color _titleBlue = Color(0xFF2B4C8A);
+  static const Color _background = Color(0xFFF2F2F2);
+  static const Color _borderBlue =  Color(0xFF1976F3);
+  static const Color _titleBlue = Colors.black;
   static const Color _accentOrange = Color(0xFFF5A524);
 
   late final SnackbarNotifier _snackbarNotifier;
