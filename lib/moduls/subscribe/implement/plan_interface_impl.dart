@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/api_handler/failure.dart';
 import '../../../core/api_handler/success.dart';
@@ -202,17 +203,18 @@ final class PlanInterfaceImpl extends PlanInterface {
   Future<Either<DataCRUDFailure, Success<PlanPaymentCreateResponse>>>
   createPlanPayment({
     required String planId,
-    required String provider,
+    // required String provider,
     String? email,
     String? name,
   }) async {
     return asyncTryCatch(
       tryFunc: () async {
+        debugPrint('API: createPlanPayment start \n planId=$planId ');
         final response = await appPigeon.post(
           ApiEndpoints.createPlanPayment,
           data: {
             'planId': planId,
-            'provider': provider,
+            // 'provider': provider,
             'email': email,
             'name': name,
           },
@@ -221,6 +223,11 @@ final class PlanInterfaceImpl extends PlanInterface {
             ? Map<String, dynamic>.from(response.data)
             : <String, dynamic>{};
         final responseData = responseBody['data'];
+
+        debugPrint(
+          'API: createPlanPayment ok message=${responseBody['message']} '
+          'hasData=${responseData != null}',
+        );
 
         if (responseData is Map) {
           return Success(
@@ -255,14 +262,31 @@ final class PlanInterfaceImpl extends PlanInterface {
   }) async {
     return asyncTryCatch(
       tryFunc: () async {
+        final effectiveProviderId = providerPaymentId ?? 'SIMULATED';
+        final usePaymentId = paymentId.isNotEmpty;
+        final path = usePaymentId
+            ? ApiEndpoints.confirmPlanPayment(paymentId)
+            : ApiEndpoints.confirmPlanPaymentNoId;
+        debugPrint(
+          'API: confirmPlanPayment start paymentId=$paymentId providerPaymentId=$providerPaymentId path=$path',
+        );
         final response = await appPigeon.post(
-          ApiEndpoints.confirmPlanPayment(paymentId),
-          data: {'providerPaymentId': providerPaymentId ?? 'SIMULATED'},
+          path,
+          data: {
+            'providerPaymentId': effectiveProviderId,
+            'paymentIntentId': effectiveProviderId,
+            'transactionId': effectiveProviderId,
+          },
         );
         final responseBody = response.data is Map
             ? Map<String, dynamic>.from(response.data)
             : <String, dynamic>{};
         final responseData = responseBody['data'];
+
+        debugPrint(
+          'API: confirmPlanPayment ok message=${responseBody['message']} '
+          'hasData=${responseData != null}',
+        );
 
         if (responseData is Map) {
           return Success(

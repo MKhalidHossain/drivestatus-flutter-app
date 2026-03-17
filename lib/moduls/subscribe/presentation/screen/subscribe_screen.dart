@@ -386,14 +386,20 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                         isSelected: false,
                       ),
                     for (final plan in plansToShow)
-                      GestureDetector(
-                        onTap: () => _selectPlan(plan),
-                        child: _buildPlanCard(
-                          plan: plan,
-                          isCurrent: false,
-                          isSelected: plan.id == selectedPlan?.id,
-                        ),
-                      ),
+                      plan.id == selectedPlan?.id
+                          ? _buildPlanCard(
+                              plan: plan,
+                              isCurrent: false,
+                              isSelected: true,
+                            )
+                          : GestureDetector(
+                              onTap: () => _selectPlan(plan),
+                              child: _buildPlanCard(
+                                plan: plan,
+                                isCurrent: false,
+                                isSelected: false,
+                              ),
+                            ),
                   ],
                 ],
               ),
