@@ -7,6 +7,7 @@ import 'delete_account_screen.dart';
 import 'notification_screen.dart';
 import 'personal_info_screen.dart';
 import 'privacy_policy_screen.dart';
+import '../../../subscribe/presentation/screen/subscribe_screen.dart';
 import 'terms_condition_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -47,6 +48,17 @@ class ProfileScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AddLicenseInfoScreen()),
+              );
+            },
+          ),
+
+          ProfileMenuItem(
+            icon: Icons.workspace_premium_outlined,
+            title: 'Subscription',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscribeScreen()),
               );
             },
           ),
