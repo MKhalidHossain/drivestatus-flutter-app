@@ -29,6 +29,7 @@ import 'moduls/profile/presentation/screen/profile_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('Stripe publishableKey prefix: ${StripeConfig.publishableKey.substring(0, 15)}');
   Stripe.publishableKey = StripeConfig.publishableKey;
   Stripe.urlScheme = 'flutterstripe';
   await Stripe.instance.applySettings();

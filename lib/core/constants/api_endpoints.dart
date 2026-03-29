@@ -216,6 +216,7 @@ base class ApiEndpoints {
   static String updatePlan(String planId) => _Plan.updatePlan(planId);
   static String deletePlan(String planId) => _Plan.deletePlan(planId);
   static const String createPlanPayment = _Plan.createPlanPayment;
+  static const String confirmPlanPaymentNoId = _Plan.confirmPlanPaymentNoId;
   static String confirmPlanPayment(String paymentId) =>
       _Plan.confirmPlanPayment(paymentId);
 }
@@ -370,6 +371,7 @@ class _Plan {
   static String updatePlan(String planId) => '$_planRoute/$planId';
   static String deletePlan(String planId) => '$_planRoute/$planId';
   static const String createPlanPayment = '$_planRoute/payments';
+  static const String confirmPlanPaymentNoId = '$_planRoute/payments/confirm';
   static String confirmPlanPayment(String paymentId) =>
       '$_planRoute/payments/$paymentId/confirm';
 }

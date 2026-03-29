@@ -37,7 +37,7 @@ abstract base class PlanInterface extends BaseRepository {
   Future<Either<DataCRUDFailure, Success<PlanPaymentCreateResponse>>>
   createPlanPayment({
     required String planId,
-    required String provider,
+    // required String provider,
     String? email,
     String? name,
   });

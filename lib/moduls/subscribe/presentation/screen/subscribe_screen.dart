@@ -12,7 +12,7 @@ class SubscribeScreen extends StatefulWidget {
 
 class _SubscribeScreenState extends State<SubscribeScreen> {
   static const Color _background = Color(0xFFF2F2F2);
-  static const Color _borderBlue =  Color(0xFF1976F3);
+  static const Color _borderBlue = Color(0xFF1976F3);
   static const Color _titleBlue = Colors.black;
   static const Color _accentOrange = Color(0xFFF5A524);
 
@@ -386,14 +386,20 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                         isSelected: false,
                       ),
                     for (final plan in plansToShow)
-                      GestureDetector(
-                        onTap: () => _selectPlan(plan),
-                        child: _buildPlanCard(
-                          plan: plan,
-                          isCurrent: false,
-                          isSelected: plan.id == selectedPlan?.id,
-                        ),
-                      ),
+                      plan.id == selectedPlan?.id
+                          ? _buildPlanCard(
+                              plan: plan,
+                              isCurrent: false,
+                              isSelected: true,
+                            )
+                          : GestureDetector(
+                              onTap: () => _selectPlan(plan),
+                              child: _buildPlanCard(
+                                plan: plan,
+                                isCurrent: false,
+                                isSelected: false,
+                              ),
+                            ),
                   ],
                 ],
               ),
