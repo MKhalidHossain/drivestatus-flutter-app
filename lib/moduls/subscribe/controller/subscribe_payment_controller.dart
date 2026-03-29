@@ -482,6 +482,7 @@ class SubscribePaymentController extends ChangeNotifier {
         ProfileData.instance.updateSubscription(
           subscribed: true,
           planName: _selectedPlan?.name ?? '',
+          subscriptionInterval: _selectedPlan?.interval ?? '',
         );
         notifyListeners();
         return true;
