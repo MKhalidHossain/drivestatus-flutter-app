@@ -31,18 +31,7 @@ final class PlanInterfaceImpl extends PlanInterface {
           );
         }
 
-        final plans = <PlanModel>[];
-        if (responseData is List) {
-          for (final item in responseData) {
-            if (item is Map) {
-              plans.add(PlanModel.fromJson(Map<String, dynamic>.from(item)));
-            }
-          }
-        } else if (responseData is Map) {
-          plans.add(
-            PlanModel.fromJson(Map<String, dynamic>.from(responseData)),
-          );
-        }
+        final plans = _extractPlans(responseData);
 
         return Success(
           message:
@@ -52,6 +41,71 @@ final class PlanInterfaceImpl extends PlanInterface {
         );
       },
     );
+  }
+
+  List<PlanModel> _extractPlans(dynamic responseData) {
+    final plans = <PlanModel>[];
+    if (responseData is List) {
+      for (final item in responseData) {
+        if (item is Map) {
+          plans.add(PlanModel.fromJson(Map<String, dynamic>.from(item)));
+        }
+      }
+      return plans;
+    }
+
+    if (responseData is! Map) {
+      return plans;
+    }
+
+    final dataMap = Map<String, dynamic>.from(responseData);
+    final candidates = <dynamic>[
+      dataMap['plans'],
+      dataMap['items'],
+      dataMap['list'],
+      dataMap['results'],
+      dataMap['data'],
+    ];
+
+    for (final candidate in candidates) {
+      if (candidate is List) {
+        for (final item in candidate) {
+          if (item is Map) {
+            plans.add(PlanModel.fromJson(Map<String, dynamic>.from(item)));
+          }
+        }
+        if (plans.isNotEmpty) {
+          break;
+        }
+      }
+    }
+
+    final currentPlanCandidate =
+        dataMap['currentPlan'] ?? dataMap['activePlan'] ?? dataMap['myPlan'];
+    final currentPlan = _readCurrentPlan(currentPlanCandidate);
+    if (currentPlan != null) {
+      final existingIndex = plans.indexWhere(
+        (plan) => plan.id == currentPlan.id,
+      );
+      if (existingIndex >= 0) {
+        plans[existingIndex] = plans[existingIndex].copyWith(isCurrent: true);
+      } else {
+        plans.insert(0, currentPlan);
+      }
+    }
+
+    if (plans.isEmpty && dataMap.isNotEmpty) {
+      plans.add(PlanModel.fromJson(dataMap));
+    }
+    return plans;
+  }
+
+  PlanModel? _readCurrentPlan(dynamic currentPlanCandidate) {
+    if (currentPlanCandidate is! Map) {
+      return null;
+    }
+    final currentMap = Map<String, dynamic>.from(currentPlanCandidate);
+    return PlanModel.fromJson(currentMap).copyWith(isCurrent: true);
   }
 
   @override
