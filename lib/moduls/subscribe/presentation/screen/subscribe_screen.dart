@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/helpers/subscription_access.dart';
 import '../../../../core/notifiers/snackbar_notifier.dart';
+import '../../../profile/model/profile_data.dart';
 import '../../model/plan_model.dart';
 import '../../controller/subscribe_payment_controller.dart';
 
@@ -47,9 +49,16 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
     if (!_initialized) {
       _initialized = true;
       _snackbarNotifier = SnackbarNotifier(context: context);
+      _syncSubscriptionSnapshot();
       _controller.init();
       _controller.loadPlans(snackbarNotifier: _snackbarNotifier);
     }
+  }
+
+  Future<void> _syncSubscriptionSnapshot() async {
+    await SubscriptionAccess.syncFromCurrentAuth();
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
@@ -129,6 +138,45 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
     return value.toUpperCase();
   }
 
+  String _activeSubscribedInterval(List<PlanModel> plans) {
+    if (!ProfileData.instance.subscribed) return '';
+
+    final fromProfile = _normalizeInterval(
+      ProfileData.instance.subscriptionInterval,
+    );
+    if (fromProfile == 'month' || fromProfile == 'year') {
+      return fromProfile;
+    }
+
+    final planName = ProfileData.instance.planName.trim().toLowerCase();
+    if (planName.isNotEmpty) {
+      for (final plan in plans) {
+        if (plan.name.trim().toLowerCase() == planName) {
+          final matched = _normalizeInterval(plan.interval);
+          if (matched == 'month' || matched == 'year') {
+            return matched;
+          }
+        }
+      }
+      if (planName.contains('year')) return 'year';
+      if (planName.contains('month')) return 'month';
+    }
+
+    return '';
+  }
+
+  bool _isLockedBySubscription({
+    required PlanModel plan,
+    required String activeSubscribedInterval,
+  }) {
+    if (activeSubscribedInterval.isEmpty) return false;
+    if (activeSubscribedInterval == 'year') {
+      // A yearly subscriber should not purchase monthly again.
+      return true;
+    }
+    return _normalizeInterval(plan.interval) == activeSubscribedInterval;
+  }
+
   String _yearlyEquivalentText(PlanModel plan) {
     if (_normalizeInterval(plan.interval) != 'year' || plan.price <= 0) {
       return '';
@@ -160,6 +208,14 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
   }
 
   void _selectPlan(PlanModel plan) {
+    final activeSubscribedInterval = _activeSubscribedInterval(
+      _controller.plans,
+    );
+    final isLocked = _isLockedBySubscription(
+      plan: plan,
+      activeSubscribedInterval: activeSubscribedInterval,
+    );
+    if (isLocked) return;
     _controller.selectPlan(plan);
     final cycle = _toCycle(plan.interval);
     if (cycle != null) {
@@ -286,6 +342,7 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
     required PlanModel plan,
     required bool isCurrent,
     required bool isSelected,
+    required bool isLockedForSubscription,
   }) {
     final isFree = plan.price == 0;
     final priceText = isFree
@@ -479,6 +536,18 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                     ),
                     child: const Text('Your Current Plan'),
                   )
+                : isLockedForSubscription
+                ? OutlinedButton(
+                    onPressed: null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF98A2B3),
+                      side: const BorderSide(color: Color(0xFFD0D5DD)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text('Already Subscribed ($cycleLabel)'),
+                  )
                 : (isSelected
                       ? ElevatedButton(
                           onPressed: _controller.isSubmitting
@@ -537,11 +606,12 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
         ),
       ),
       body: AnimatedBuilder(
-        animation: _controller,
+        animation: Listenable.merge([_controller, ProfileData.instance]),
         builder: (context, _) {
           final hasPlans = _controller.hasPlans;
           final allPlans = _controller.plans;
           final activeInterval = _activeInterval(allPlans);
+          final activeSubscribedInterval = _activeSubscribedInterval(allPlans);
           final scopedPlans = _plansForInterval(allPlans, activeInterval);
           final availableCycles = _availableCycles(allPlans);
           final currentPlan =
@@ -605,24 +675,30 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                         plan: currentPlan,
                         isCurrent: true,
                         isSelected: false,
+                        isLockedForSubscription: false,
                       ),
                     for (final plan in plansToShow)
-                      plan.id == selectedPlan?.id
-                          ? _buildPlanCard(
-                              scopedPlans: scopedPlans,
-                              plan: plan,
-                              isCurrent: false,
-                              isSelected: true,
-                            )
-                          : GestureDetector(
-                              onTap: () => _selectPlan(plan),
-                              child: _buildPlanCard(
-                                scopedPlans: scopedPlans,
-                                plan: plan,
-                                isCurrent: false,
-                                isSelected: false,
-                              ),
-                            ),
+                      () {
+                        final isLockedForSubscription = _isLockedBySubscription(
+                          plan: plan,
+                          activeSubscribedInterval: activeSubscribedInterval,
+                        );
+                        final card = _buildPlanCard(
+                          scopedPlans: scopedPlans,
+                          plan: plan,
+                          isCurrent: false,
+                          isSelected: plan.id == selectedPlan?.id,
+                          isLockedForSubscription: isLockedForSubscription,
+                        );
+                        if (plan.id == selectedPlan?.id ||
+                            isLockedForSubscription) {
+                          return card;
+                        }
+                        return GestureDetector(
+                          onTap: () => _selectPlan(plan),
+                          child: card,
+                        );
+                      }(),
                   ],
                 ],
               ),

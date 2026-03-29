@@ -29,6 +29,7 @@ class ProfileData extends ChangeNotifier {
   bool communityAlerts = false;
   bool subscribed = false;
   String planName = '';
+  String subscriptionInterval = '';
   bool hasLoaded = false;
 
   void updateProfile({
@@ -56,6 +57,7 @@ class ProfileData extends ChangeNotifier {
     communityAlerts = profile.communityAlerts;
     subscribed = profile.subscribed;
     planName = profile.planName;
+    subscriptionInterval = profile.subscriptionInterval;
     if (profile.dateOfBirth != null) {
       final date = profile.dateOfBirth!;
       dateOfBirth =
@@ -84,6 +86,7 @@ class ProfileData extends ChangeNotifier {
     communityAlerts = false;
     subscribed = false;
     planName = '';
+    subscriptionInterval = '';
     hasLoaded = true;
     notifyListeners();
   }
@@ -91,10 +94,12 @@ class ProfileData extends ChangeNotifier {
   void updateSubscription({
     required bool subscribed,
     String planName = '',
+    String subscriptionInterval = '',
     bool notify = true,
   }) {
     this.subscribed = subscribed;
     this.planName = planName;
+    this.subscriptionInterval = subscriptionInterval;
     if (notify) {
       notifyListeners();
     }
