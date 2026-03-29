@@ -50,6 +50,26 @@ class SubscriptionAccess {
     return '';
   }
 
+  static String _extractSubscriptionInterval(Map<String, dynamic> data) {
+    final direct = _readString(data['subscriptionInterval']);
+    if (direct.isNotEmpty) return direct;
+
+    final currentPlan = data['currentPlan'];
+    if (currentPlan is Map) {
+      final currentInterval = _readString(currentPlan['interval']);
+      if (currentInterval.isNotEmpty) return currentInterval;
+    }
+
+    final nestedUser = data['user'];
+    if (nestedUser is Map) {
+      return _extractSubscriptionInterval(
+        Map<String, dynamic>.from(nestedUser),
+      );
+    }
+
+    return '';
+  }
+
   static Future<bool> syncFromCurrentAuth() async {
     try {
       final appPigeon = Get.find<AppPigeon>();
@@ -61,10 +81,12 @@ class SubscriptionAccess {
       final source = status.auth.data;
       final subscribed = _extractSubscribed(source);
       final planName = _extractPlanName(source);
+      final subscriptionInterval = _extractSubscriptionInterval(source);
 
       ProfileData.instance.updateSubscription(
         subscribed: subscribed,
         planName: planName,
+        subscriptionInterval: subscriptionInterval,
       );
       return subscribed;
     } catch (_) {
