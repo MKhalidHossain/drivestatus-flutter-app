@@ -216,6 +216,7 @@ base class ApiEndpoints {
   static String updatePlan(String planId) => _Plan.updatePlan(planId);
   static String deletePlan(String planId) => _Plan.deletePlan(planId);
   static const String createPlanPayment = _Plan.createPlanPayment;
+  static const String confirmPlanPaymentNoId = _Plan.confirmPlanPaymentNoId;
   static String confirmPlanPayment(String paymentId) =>
       _Plan.confirmPlanPayment(paymentId);
 }
@@ -223,8 +224,11 @@ base class ApiEndpoints {
 class _LocalHostWifi {
   //  static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
   //  static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
-  static const String socketUrl = 'http://192.168.1.6:5000';
-  static const String baseUrl = 'http://192.168.1.6:5000/api/v1';
+  // static const String socketUrl = 'http://192.168.1.6:5000';
+  // static const String baseUrl = 'http://192.168.1.6:5000/api/v1';
+  
+  static const String socketUrl = 'http://10.10.5.85:5000';
+  static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
 }
 
 class _LiveHostUrls {
@@ -370,6 +374,7 @@ class _Plan {
   static String updatePlan(String planId) => '$_planRoute/$planId';
   static String deletePlan(String planId) => '$_planRoute/$planId';
   static const String createPlanPayment = '$_planRoute/payments';
+  static const String confirmPlanPaymentNoId = '$_planRoute/payments/confirm';
   static String confirmPlanPayment(String paymentId) =>
       '$_planRoute/payments/$paymentId/confirm';
 }

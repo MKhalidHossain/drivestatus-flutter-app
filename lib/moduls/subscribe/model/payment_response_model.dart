@@ -14,12 +14,19 @@ class PlanPaymentCreateResponse {
   });
 
   factory PlanPaymentCreateResponse.fromJson(Map<String, dynamic> json) {
+    final transactionId = json['transactionId']?.toString();
+    final paymentIntentId = json['paymentIntentId']?.toString();
     return PlanPaymentCreateResponse(
-      paymentId: json['paymentId']?.toString() ?? '',
+      paymentId:
+          json['paymentId']?.toString() ?? json['payment_id']?.toString() ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       currency: json['currency']?.toString() ?? 'USD',
-      clientSecret: json['clientSecret']?.toString(),
-      providerPaymentId: json['providerPaymentId']?.toString(),
+      clientSecret: json['clientSecret'] ?? json['client_secret'] ?? '',
+      providerPaymentId:
+          json['providerPaymentId']?.toString() ??
+          transactionId ??
+          paymentIntentId ??
+          json['payment_intent']?.toString(),
     );
   }
 }
@@ -51,7 +58,12 @@ class PlanPaymentModel {
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       currency: json['currency']?.toString() ?? 'USD',
       status: json['status']?.toString() ?? '',
-      providerPaymentId: json['providerPaymentId']?.toString() ?? '',
+      providerPaymentId:
+          json['providerPaymentId']?.toString() ??
+          json['transactionId']?.toString() ??
+          json['paymentIntentId']?.toString() ??
+          json['payment_intent']?.toString() ??
+          '',
     );
   }
 }

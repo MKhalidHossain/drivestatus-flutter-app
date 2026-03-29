@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/helpers/subscription_access.dart';
 import '../../../../core/notifiers/snackbar_notifier.dart';
+import '../../../profile/model/profile_data.dart';
 import '../controller/ticket_controller.dart';
 import '../widget/payment_method_dialog.dart';
 import '../widget/ticket_card.dart';
@@ -9,7 +11,7 @@ import '../../model/ticket_model.dart';
 
 class TicketScreen extends StatefulWidget {
   final bool showBackButton;
-  
+
   const TicketScreen({super.key, this.showBackButton = false});
 
   @override
@@ -22,8 +24,20 @@ class _TicketScreenState extends State<TicketScreen> {
   late final SnackbarNotifier _snackbarNotifier;
 
   String _formatDateShort(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final month = months[date.month - 1];
     final day = date.day;
     final year = date.year;
@@ -55,8 +69,17 @@ class _TicketScreenState extends State<TicketScreen> {
     );
   }
 
+  Future<bool> _ensureTicketAccess(String featureName) async {
+    return SubscriptionAccess.ensureSubscribedAction(
+      context: context,
+      featureName: featureName,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isSubscribed = ProfileData.instance.subscribed;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
       appBar: widget.showBackButton
@@ -84,9 +107,7 @@ class _TicketScreenState extends State<TicketScreen> {
           builder: (context, isLoading, _) {
             final hasLoaded = TicketController.hasLoaded.value;
             if (isLoading && !hasLoaded) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
             return RefreshIndicator(
               onRefresh: _loadTickets,
@@ -99,7 +120,8 @@ class _TicketScreenState extends State<TicketScreen> {
                       return ValueListenableBuilder<List<TicketModel>>(
                         valueListenable: TicketController.paidTickets,
                         builder: (context, paidTickets, _) {
-                          final summary = ticketsData?.summary ??
+                          final summary =
+                              ticketsData?.summary ??
                               TicketSummary(
                                 openTickets: 0,
                                 totalDue: 0,
@@ -108,15 +130,36 @@ class _TicketScreenState extends State<TicketScreen> {
 
                           return ListView(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                             children: [
+                              if (!isSubscribed) ...[
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF4DB),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'Ticket check and action buttons are locked for unsubscribed users.',
+                                    style: TextStyle(
+                                      color: Color(0xFF8A5B00),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                               if (!widget.showBackButton) ...[
                                 const SizedBox(height: 6),
                                 const Center(
                                   child: Text(
                                     'Ticket',
                                     style: TextStyle(
-                                        fontSize: 18, fontWeight: FontWeight.w600),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 18),
@@ -131,19 +174,29 @@ class _TicketScreenState extends State<TicketScreen> {
                                 const Text(
                                   'Active',
                                   style: TextStyle(
-                                      fontSize: 14, fontWeight: FontWeight.w600),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
-                                ...unpaidTickets.map((ticket) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 10),
-                                      child: TicketCard(
-                                        ticketId: ticket.ticketNo,
-                                        type: ticket.type,
-                                        amount: _formatCurrency(ticket.amount),
-                                        dueDate: _formatDateShort(ticket.dueAt),
-                                        isPaid: false,
-                                        onPayNow: () => showDialog(
+                                ...unpaidTickets.map(
+                                  (ticket) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: TicketCard(
+                                      ticketId: ticket.ticketNo,
+                                      type: ticket.type,
+                                      amount: _formatCurrency(ticket.amount),
+                                      dueDate: _formatDateShort(ticket.dueAt),
+                                      isPaid: false,
+                                      onPayNow: () async {
+                                        final canProceed =
+                                            await _ensureTicketAccess(
+                                              'Ticket payment',
+                                            );
+                                        if (!canProceed || !context.mounted) {
+                                          return;
+                                        }
+                                        showDialog(
                                           context: context,
                                           barrierDismissible: true,
                                           builder: (dialogContext) {
@@ -153,55 +206,81 @@ class _TicketScreenState extends State<TicketScreen> {
                                                   isSelected: _isPaypalselected,
                                                   onSelectChanged: (val) {
                                                     _isPaypalselected = val;
-                                                    setState(() =>
-                                                        _isPaypalselected =
-                                                            !_isPaypalselected);
+                                                    setState(
+                                                      () => _isPaypalselected =
+                                                          !_isPaypalselected,
+                                                    );
                                                   },
                                                   onClose: () => Navigator.of(
-                                                      context)
-                                                      .pop(dialogContext),
-                                                  onPay: () => Navigator.of(
-                                                          context)
-                                                      .pushNamed(AppRoutes
-                                                          .planPricingDetails),
+                                                    context,
+                                                  ).pop(dialogContext),
+                                                  onPay: () =>
+                                                      Navigator.of(
+                                                        context,
+                                                      ).pushNamed(
+                                                        AppRoutes
+                                                            .planPricingDetails,
+                                                      ),
                                                 );
                                               },
                                             );
                                           },
-                                        ),
-                                        onViewDetails: () =>
-                                            Navigator.of(context).pushNamed(
-                                                AppRoutes.ticketDetails,
-                                                arguments: ticket.id),
-                                      ),
-                                    )),
+                                        );
+                                      },
+                                      onViewDetails: () async {
+                                        final canProceed =
+                                            await _ensureTicketAccess(
+                                              'Ticket details',
+                                            );
+                                        if (!canProceed || !context.mounted) {
+                                          return;
+                                        }
+                                        Navigator.of(context).pushNamed(
+                                          AppRoutes.ticketDetails,
+                                          arguments: ticket.id,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
                                 const SizedBox(height: 16),
                               ],
                               if (paidTickets.isNotEmpty) ...[
                                 const Text(
                                   'Paid',
                                   style: TextStyle(
-                                      fontSize: 14, fontWeight: FontWeight.w600),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
-                                ...paidTickets.map((ticket) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 10),
-                                      child: TicketCard(
-                                        ticketId: ticket.ticketNo,
-                                        type: ticket.type,
-                                        amount: _formatCurrency(ticket.amount),
-                                        dueDate: _formatDateShort(ticket.dueAt),
-                                        isPaid: true,
-                                        onViewDetails: () =>
-                                            Navigator.of(context).pushNamed(
-                                                AppRoutes.ticketDetails,
-                                                arguments: ticket.id),
-                                      ),
-                                    )),
+                                ...paidTickets.map(
+                                  (ticket) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: TicketCard(
+                                      ticketId: ticket.ticketNo,
+                                      type: ticket.type,
+                                      amount: _formatCurrency(ticket.amount),
+                                      dueDate: _formatDateShort(ticket.dueAt),
+                                      isPaid: true,
+                                      onViewDetails: () async {
+                                        final canProceed =
+                                            await _ensureTicketAccess(
+                                              'Ticket details',
+                                            );
+                                        if (!canProceed || !context.mounted) {
+                                          return;
+                                        }
+                                        Navigator.of(context).pushNamed(
+                                          AppRoutes.ticketDetails,
+                                          arguments: ticket.id,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
                               ],
-                              if (unpaidTickets.isEmpty &&
-                                  paidTickets.isEmpty)
+                              if (unpaidTickets.isEmpty && paidTickets.isEmpty)
                                 const Padding(
                                   padding: EdgeInsets.all(32.0),
                                   child: Center(

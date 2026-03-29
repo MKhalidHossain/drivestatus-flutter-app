@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_routes.dart';
+import '../../../core/helpers/subscription_access.dart';
 import '../../../core/notifiers/snackbar_notifier.dart';
 import '../../../core/services/app_pigeon/app_pigeon.dart';
 import '../controller/home_controller.dart';
@@ -89,6 +90,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (message.isEmpty) return timeAgo;
     if (timeAgo.isEmpty) return message;
     return '$message - $timeAgo';
+  }
+
+  Future<void> _openSubscriptionFeature({
+    required String featureName,
+    required String route,
+  }) async {
+    final canProceed = await SubscriptionAccess.ensureSubscribedAction(
+      context: context,
+      featureName: featureName,
+    );
+    if (!canProceed || !mounted) return;
+    Navigator.pushNamed(context, route);
   }
 
   int _licenseAlertsCount(List<HomeActivityModel> activities) {
@@ -210,9 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final licenseStatus = _formatStatus(licenseState?.licenseStatus);
     final licenseAlerts = _licenseAlertsCount(homeData.recentActivity);
     final ticketAlerts = homeData.ticketAlerts;
-     homeData.recentActivity
-        .where((activity) => !activity.isRead)
-        .length;
+    homeData.recentActivity.where((activity) => !activity.isRead).length;
     final profileData = ProfileData.instance;
 
     return Scaffold(
@@ -239,7 +250,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.notifications),
                     child: Stack(
                       children: [
                         Icon(
@@ -264,8 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: AnimatedBuilder(
                       animation: profileData,
                       builder: (context, _) {
-                        final avatarProvider =
-                            profileData.avatarImageProvider;
+                        final avatarProvider = profileData.avatarImageProvider;
                         return CircleAvatar(
                           radius: (size.width * 0.045).clamp(14.0, 20.0),
                           backgroundColor: const Color(0xFFE0E0E0),
@@ -371,7 +382,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: const Color(0xFF1B8E3E),
                     ),
                     iconBackground: const Color(0xFFE8F7ED),
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.license),
+                    onTap: () => _openSubscriptionFeature(
+                      featureName: 'License status',
+                      route: AppRoutes.license,
+                    ),
                   ),
 
                   _QuickAccessCard(
@@ -384,7 +398,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: const Color(0xFF5C6BF2),
                     ),
                     iconBackground: const Color(0xFFEFF2FF),
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.ticket),
+                    onTap: () => _openSubscriptionFeature(
+                      featureName: 'Ticket assistance',
+                      route: AppRoutes.ticket,
+                    ),
                   ),
 
                   _QuickAccessCard(
@@ -453,16 +470,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Center(
                   child: Text(
                     'No recent activity',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF777777),
-                    ),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF777777)),
                   ),
                 )
               else
                 Column(
-                  children: List.generate(homeData.recentActivity.length,
-                      (index) {
+                  children: List.generate(homeData.recentActivity.length, (
+                    index,
+                  ) {
                     final activity = homeData.recentActivity[index];
                     final style = _activityStyle(activity);
                     return Padding(
