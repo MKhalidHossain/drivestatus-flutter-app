@@ -340,7 +340,7 @@ class SubscribePaymentController extends ChangeNotifier {
         paymentData.clientSecret == null ||
         paymentData.clientSecret!.isEmpty) {
       debugPrint(
-        'Stripe: createPayment missing clientSecret paymentId=${paymentData?.paymentId} providerPaymentId=${paymentData?.providerPaymentId}',
+        'Stripe: createPayment missing clientSecret paymentId=${paymentData?.paymentId} \nproviderPaymentId=${paymentData?.providerPaymentId}',
       );
       snackbarNotifier.notifyError(
         message: 'Stripe client secret missing from backend response.',
