@@ -1,17 +1,15 @@
-
 part of '../app_pigeon.dart';
 
 class _CancelRefreshToken extends CancelToken {}
 
 class _AuthStatusDecider {
   static AuthStatus get(Auth? auth) {
-    if(auth == null) {
+    if (auth == null) {
       return UnAuthenticated();
-    } 
+    }
     return Authenticated(auth: auth);
   }
 }
-
 
 class AuthService extends Interceptor {
   final Dio dio;
@@ -19,7 +17,7 @@ class AuthService extends Interceptor {
   final RefreshTokenManagerInterface refreshTokenManager;
   final Debugger _authDebugger = AuthDebugger();
   late final _AuthStorage _authStorage;
-  AuthService(this._secureStorage, this.dio, this.refreshTokenManager){
+  AuthService(this._secureStorage, this.dio, this.refreshTokenManager) {
     _authStorage = _AuthStorage(secureStorage: _secureStorage);
   }
 
@@ -28,51 +26,82 @@ class AuthService extends Interceptor {
     _authStorage.init();
   }
 
-  Stream<AuthStatus> get authStream => _authStorage._authStreamController.stream;
+  Stream<AuthStatus> get authStream =>
+      _authStorage._authStreamController.stream;
 
-  Future<AuthStatus> currentAuth() async=> await _authStorage.currentAuthStatus();
-  Future<void> dispose() async{
+  Future<AuthStatus> currentAuth() async =>
+      await _authStorage.currentAuthStatus();
+  Future<void> dispose() async {
     _authStorage.dispose();
   }
 
   bool _refreshingToken = false;
+
   /// Attach access token to every request
   @override
-  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final auth = await _authStorage.getCurrentAuth();
     final accessToken = auth?._accessToken;
     if (accessToken != null) {
       options.headers['Authorization'] = 'Bearer $accessToken';
     }
-    _authDebugger.dekhao("${options.uri.toString()} ${options.method}");    
-    _authDebugger.dekhao("${options.data.toString()} ");
+    _authDebugger.dekhao({
+      "type": "API_REQUEST",
+      "method": options.method,
+      "url": options.uri.toString(),
+      "query": options.queryParameters,
+      "body": options.data,
+    });
 
     handler.next(options);
   }
 
   @override
-  Future<void> onResponse(Response response, ResponseInterceptorHandler handler) async {
-    debugPrint("Response << Method: ${response.requestOptions.method} API: ${response.requestOptions.uri} << ${response.data}");
+  Future<void> onResponse(
+    Response response,
+    ResponseInterceptorHandler handler,
+  ) async {
+    _authDebugger.dekhao({
+      "type": "API_RESPONSE",
+      "method": response.requestOptions.method,
+      "url": response.requestOptions.uri.toString(),
+      "statusCode": response.statusCode,
+      "body": response.data,
+    });
     handler.next(response);
   }
-  
+
   /// Catch errors like 401 and retry with new access token if access token expires.
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
-    debugPrint("Error >> Method: ${err.requestOptions.method} API: ${err.requestOptions.uri} >> ${err.response}");
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    _authDebugger.dekhao({
+      "type": "API_ERROR",
+      "method": err.requestOptions.method,
+      "url": err.requestOptions.uri.toString(),
+      "statusCode": err.response?.statusCode,
+      "errorType": err.type.name,
+      "message": err.message,
+      "body": err.response?.data,
+    });
     // IF TIMEOUT, then possibly internet is down. Hence reject the request.
     final status = (await _authStorage.currentAuthStatus());
-    if(err.type == DioExceptionType.connectionTimeout || err.type == DioExceptionType.receiveTimeout) {
+    if (err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout) {
       _authDebugger.dekhao("Timeout error");
       return handler.reject(err);
     }
-    if(_refreshingToken) {
+    if (_refreshingToken) {
       _authDebugger.dekhao("Already refreshing token");
       return handler.reject(err);
     }
-    
-    if(err.requestOptions.cancelToken != null) {
+
+    if (err.requestOptions.cancelToken != null) {
       return handler.reject(err);
     }
 
@@ -82,18 +111,18 @@ class AuthService extends Interceptor {
       try {
         _refreshingToken = true;
         refreshTokenResponse = await refreshTokenManager.refreshToken(
-          refreshToken: status.auth._refreshToken ?? ""
+          refreshToken: status.auth._refreshToken ?? "",
         );
         _refreshingToken = false;
         await _authStorage.updateCurrentAuth(
           UpdateAuthParams(
             accessToken: refreshTokenResponse.accessToken,
             refreshToken: refreshTokenResponse.refreshToken,
-            data: refreshTokenResponse.data
-          )
+            data: refreshTokenResponse.data,
+          ),
         );
         // Wait a second to receive changes from secure storage.
-        await Future.delayed(Duration(seconds: 1)).then((_) async{
+        await Future.delayed(Duration(seconds: 1)).then((_) async {
           final RequestOptions requestOptions = err.requestOptions;
 
           try {
@@ -108,30 +137,54 @@ class AuthService extends Interceptor {
               queryParameters: requestOptions.queryParameters,
             );
             return handler.resolve(cloneReq);
-          } catch (e) {
-            return handler.reject(e as DioException);
+          } catch (e, stackTrace) {
+            final clonedRequestError = e is DioException
+                ? e
+                : DioException(
+                    requestOptions: requestOptions,
+                    type: DioExceptionType.unknown,
+                    error: e,
+                    stackTrace: stackTrace,
+                  );
+            return handler.reject(clonedRequestError);
           }
         });
-      } catch (e) {
-        _authStorage.clearCurrentAuthRecord();
+      } catch (e, stackTrace) {
         _refreshingToken = false;
-        return handler.reject(e as DioException);
+        final refreshError = e is DioException
+            ? e
+            : DioException(
+                requestOptions: err.requestOptions,
+                type: DioExceptionType.unknown,
+                error: e,
+                stackTrace: stackTrace,
+              );
+        final refreshStatus = refreshError.response?.statusCode;
+        if (refreshStatus == 401 || refreshStatus == 403) {
+          await _authStorage.clearCurrentAuthRecord();
+        }
+        return handler.reject(refreshError);
       }
     } else {
-      _authDebugger.dekhao("error debug from dio interceptor: ${err.response?.data}");
+      _authDebugger.dekhao(
+        "error debug from dio interceptor: ${err.response?.data}",
+      );
       debugPrint(err.message);
       return handler.next(err);
     }
-    
   }
 
   /// Saves the new auth as currentAuth.
   /// Throws Exception, if user is still logged in.
   /// Must logout first.
-  Future<void> saveNewAuth({required SaveNewAuthParams saveNewAuthParams}) async => _authStorage.saveNewAuth( saveNewAuthParams);
+  Future<void> saveNewAuth({
+    required SaveNewAuthParams saveNewAuthParams,
+  }) async => _authStorage.saveNewAuth(saveNewAuthParams);
 
-  Future<void> updateCurrentAuth({required UpdateAuthParams updateAuthParams}) async => _authStorage.updateCurrentAuth(updateAuthParams);
+  Future<void> updateCurrentAuth({
+    required UpdateAuthParams updateAuthParams,
+  }) async => _authStorage.updateCurrentAuth(updateAuthParams);
 
-  Future<void> clearCurrentAuthRecord() async => await _authStorage.clearCurrentAuthRecord();
-
+  Future<void> clearCurrentAuthRecord() async =>
+      await _authStorage.clearCurrentAuthRecord();
 }

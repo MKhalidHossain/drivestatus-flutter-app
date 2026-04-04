@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/helpers/subscription_access.dart';
 import '../../../../core/notifiers/snackbar_notifier.dart';
 import '../../../../core/services/app_pigeon/app_pigeon.dart';
 import '../../interface/license_interface.dart';
@@ -32,31 +33,48 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
   DateTime? _selectedDateOfBirth;
   DateTime? _selectedExpireDate;
 
+  Future<bool> _ensureSubscribed(String featureName) async {
+    return SubscriptionAccess.ensureSubscribedAction(
+      context: context,
+      featureName: featureName,
+    );
+  }
+
   DateTime? _parseFormattedDateToDateTime(String formattedDate) {
     if (formattedDate.isEmpty || formattedDate == 'N/A') {
       return null;
     }
-    
+
     try {
       // Parse format like "19th July, 1990" or "1st January, 2000"
       final parts = formattedDate.split(',');
       if (parts.length != 2) return null;
-      
+
       final year = int.tryParse(parts[1].trim());
       if (year == null) return null;
-      
+
       final datePart = parts[0].trim();
       final dayMatch = RegExp(r'^\d+').firstMatch(datePart);
       if (dayMatch == null) return null;
-      
+
       final day = int.tryParse(dayMatch.group(0)!);
       if (day == null) return null;
-      
+
       final monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
       ];
-      
+
       int? month;
       for (int i = 0; i < monthNames.length; i++) {
         if (datePart.contains(monthNames[i])) {
@@ -64,9 +82,9 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
           break;
         }
       }
-      
+
       if (month == null) return null;
-      
+
       return DateTime(year, month, day);
     } catch (e) {
       return null;
@@ -75,13 +93,23 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
 
   String _formatDateForDisplay(DateTime date) {
     final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     final day = date.day;
     final month = months[date.month - 1];
     final year = date.year;
-    
+
     String suffix = 'th';
     if (day >= 11 && day <= 13) {
       suffix = 'th';
@@ -100,7 +128,7 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
           suffix = 'th';
       }
     }
-    
+
     return '$day$suffix $month, $year';
   }
 
@@ -108,27 +136,32 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
   void initState() {
     super.initState();
     final info = LicenseInfoController.notifier.value;
-    _nameController = TextEditingController(text: info.name == 'N/A' ? '' : info.name);
+    _nameController = TextEditingController(
+      text: info.name == 'N/A' ? '' : info.name,
+    );
     _licenseNoController = TextEditingController(text: info.licenseNo);
     _stateController = TextEditingController(text: info.state);
-    
+
     // Parse dates from formatted strings
     _selectedDateOfBirth = _parseFormattedDateToDateTime(info.dateOfBirth);
     _selectedExpireDate = _parseFormattedDateToDateTime(info.expireDate);
-    
+
     _dobController = TextEditingController(
-      text: _selectedDateOfBirth != null 
-          ? _formatDateForDisplay(_selectedDateOfBirth!) 
-          : ''
+      text: _selectedDateOfBirth != null
+          ? _formatDateForDisplay(_selectedDateOfBirth!)
+          : '',
     );
     _expireController = TextEditingController(
-      text: _selectedExpireDate != null 
-          ? _formatDateForDisplay(_selectedExpireDate!) 
-          : ''
+      text: _selectedExpireDate != null
+          ? _formatDateForDisplay(_selectedExpireDate!)
+          : '',
     );
   }
 
   Future<void> _pickUserPhoto() async {
+    final canProceed = await _ensureSubscribed('License photo upload');
+    if (!canProceed || !mounted) return;
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -140,11 +173,16 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
         });
       }
     } catch (e) {
-      _snackbarNotifier.notifyError(message: 'Failed to pick image: ${e.toString()}');
+      _snackbarNotifier.notifyError(
+        message: 'Failed to pick image: ${e.toString()}',
+      );
     }
   }
 
   Future<void> _pickLicensePhoto() async {
+    final canProceed = await _ensureSubscribed('License photo upload');
+    if (!canProceed || !mounted) return;
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -156,14 +194,18 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
         });
       }
     } catch (e) {
-      _snackbarNotifier.notifyError(message: 'Failed to pick image: ${e.toString()}');
+      _snackbarNotifier.notifyError(
+        message: 'Failed to pick image: ${e.toString()}',
+      );
     }
   }
 
   Future<void> _selectDateOfBirth() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDateOfBirth ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
+      initialDate:
+          _selectedDateOfBirth ??
+          DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       helpText: 'Select Date of Birth',
@@ -191,7 +233,8 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
   Future<void> _selectExpireDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedExpireDate ?? DateTime.now().add(const Duration(days: 365)),
+      initialDate:
+          _selectedExpireDate ?? DateTime.now().add(const Duration(days: 365)),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
       helpText: 'Select Expire Date',
@@ -242,7 +285,11 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
       if (authStatus is Authenticated) {
         final auth = authStatus.auth;
         // Try to get userId from data
-        final userId = auth.data['_id'] ?? auth.data['userId'] ?? auth.data['user']?['_id'] ?? auth.data['user']?['id'];
+        final userId =
+            auth.data['_id'] ??
+            auth.data['userId'] ??
+            auth.data['user']?['_id'] ??
+            auth.data['user']?['id'];
         if (userId != null) {
           return userId.toString();
         }
@@ -255,6 +302,8 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
 
   Future<void> _saveAndClose() async {
     if (_isLoading) return;
+    final canProceed = await _ensureSubscribed('License information update');
+    if (!canProceed || !mounted) return;
 
     // Validate required fields
     if (_nameController.text.trim().isEmpty) {
@@ -273,7 +322,9 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
     // Get user ID
     final userId = await _getUserId();
     if (userId == null || userId.isEmpty) {
-      _snackbarNotifier.notifyError(message: 'Unable to get user information. Please login again.');
+      _snackbarNotifier.notifyError(
+        message: 'Unable to get user information. Please login again.',
+      );
       return;
     }
 
@@ -283,10 +334,12 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
 
     try {
       final info = LicenseInfoController.notifier.value;
-      
+
       // Use selected dates or fall back to existing
-      String dateOfBirthISO = _selectedDateOfBirth?.toIso8601String() ?? info.rawDateOfBirth;
-      String expireDateISO = _selectedExpireDate?.toIso8601String() ?? info.rawExpireDate;
+      String dateOfBirthISO =
+          _selectedDateOfBirth?.toIso8601String() ?? info.rawDateOfBirth;
+      String expireDateISO =
+          _selectedExpireDate?.toIso8601String() ?? info.rawExpireDate;
 
       // Use selected images if available, otherwise keep existing
       final userPhotoPath = _selectedUserPhotoPath ?? info.userPhoto;
@@ -378,8 +431,8 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
                     controller.text.isEmpty ? 'Select $label' : controller.text,
                     style: TextStyle(
                       fontSize: 14,
-                      color: controller.text.isEmpty 
-                          ? const Color(0xFF9E9E9E) 
+                      color: controller.text.isEmpty
+                          ? const Color(0xFF9E9E9E)
                           : Colors.black87,
                     ),
                   ),
@@ -404,9 +457,11 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
     required String existingImageUrl,
     required VoidCallback onPickImage,
   }) {
-    final bool hasValidImage = imagePath != null || 
-        (existingImageUrl.isNotEmpty && 
-         (existingImageUrl.startsWith('http://') || existingImageUrl.startsWith('https://')));
+    final bool hasValidImage =
+        imagePath != null ||
+        (existingImageUrl.isNotEmpty &&
+            (existingImageUrl.startsWith('http://') ||
+                existingImageUrl.startsWith('https://')));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,10 +471,7 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
             SizedBox(
               height: 30,
@@ -468,49 +520,59 @@ class _EditLicenseInfoScreenState extends State<EditLicenseInfoScreen> {
                       return Container(
                         color: Colors.grey[200],
                         child: const Center(
-                          child: Icon(Icons.image, size: 50, color: Colors.grey),
+                          child: Icon(
+                            Icons.image,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
                         ),
                       );
                     },
                   )
                 : hasValidImage
-                    ? Image.network(
-                        existingImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: Icon(Icons.image, size: 50, color: Colors.grey),
-                            ),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
+                ? Image.network(
+                    existingImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
                         color: Colors.grey[200],
                         child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.image_outlined, size: 50, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text(
-                                'No image selected',
-                                style: TextStyle(color: Colors.grey, fontSize: 12),
-                              ),
-                            ],
+                          child: Icon(
+                            Icons.image,
+                            size: 50,
+                            color: Colors.grey,
                           ),
                         ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: Colors.grey[200],
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                  )
+                : Container(
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_outlined,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'No image selected',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
                       ),
+                    ),
+                  ),
           ),
         ),
       ],

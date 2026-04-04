@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 base class ApiEndpoints {
-  static const String socketUrl = _LocalHostWifi.socketUrl;
+  static const String socketUrl = _LiveHostUrls.socketUrl;
   // static const String socketUrl = _LiveHostUrls.socketUrl;
 
-  static const String baseUrl = _LocalHostWifi.baseUrl;
+  static const String baseUrl = _LiveHostUrls.baseUrl;
 
   /// ### post
   static const String login = _Auth.login;
@@ -216,16 +216,22 @@ base class ApiEndpoints {
   static String updatePlan(String planId) => _Plan.updatePlan(planId);
   static String deletePlan(String planId) => _Plan.deletePlan(planId);
   static const String createPlanPayment = _Plan.createPlanPayment;
+  static const String confirmPlanPaymentNoId = _Plan.confirmPlanPaymentNoId;
   static String confirmPlanPayment(String paymentId) =>
       _Plan.confirmPlanPayment(paymentId);
 }
 
-class _LocalHostWifi {
-  //  static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
-  //  static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
-  static const String socketUrl = 'http://192.168.1.6:5000';
-  static const String baseUrl = 'http://192.168.1.6:5000/api/v1';
-}
+// ---------------------- Local Host URLs -----------------------------
+
+// class _LocalHostWifi {
+//   //  static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
+//   //  static const String baseUrl = 'https://backend-bigghustle-icpx.onrender.com/api/v1';
+//   // static const String socketUrl = 'http://192.168.1.6:5000';
+//   // static const String baseUrl = 'http://192.168.1.6:5000/api/v1';
+  
+//   static const String socketUrl = 'http://10.10.5.85:5000';
+//   static const String baseUrl = 'http://10.10.5.85:5000/api/v1';
+// }
 
 class _LiveHostUrls {
   // static const String socketUrl = 'https://backend-bigghustle-icpx.onrender.com';
@@ -370,6 +376,7 @@ class _Plan {
   static String updatePlan(String planId) => '$_planRoute/$planId';
   static String deletePlan(String planId) => '$_planRoute/$planId';
   static const String createPlanPayment = '$_planRoute/payments';
+  static const String confirmPlanPaymentNoId = '$_planRoute/payments/confirm';
   static String confirmPlanPayment(String paymentId) =>
       '$_planRoute/payments/$paymentId/confirm';
 }

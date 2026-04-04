@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 
+import 'package:flutter_bighustle/core/helpers/subscription_access.dart';
 import 'package:flutter_bighustle/core/notifiers/snackbar_notifier.dart';
 import 'package:flutter_bighustle/core/services/app_pigeon/app_pigeon.dart';
 import 'package:flutter_bighustle/moduls/license/controller/license_create_controller.dart';
 import 'package:flutter_bighustle/moduls/license/implement/license_interface_impl.dart';
 import 'package:flutter_bighustle/moduls/license/interface/license_interface.dart';
+import '../../model/profile_data.dart';
 
 const Color _fieldBorderColor = Color(0xFFBDBDBD);
 const Color _fieldHintColor = Color(0xFF9A9A9A);
@@ -102,7 +104,17 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
     super.dispose();
   }
 
+  Future<bool> _ensureSubscribed(String featureName) async {
+    return SubscriptionAccess.ensureSubscribedAction(
+      context: context,
+      featureName: featureName,
+    );
+  }
+
   Future<void> _pickImage({required bool isUserPhoto}) async {
+    final canProceed = await _ensureSubscribed('License upload');
+    if (!canProceed || !mounted) return;
+
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
@@ -123,6 +135,11 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
   }
 
   Future<void> _submit() async {
+    final canProceed = await _ensureSubscribed(
+      'License verification submission',
+    );
+    if (!canProceed || !mounted) return;
+
     setState(() => _isSubmitting = true);
     final success = await _controller.submit();
     if (!mounted) {
@@ -180,6 +197,8 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isSubscribed = ProfileData.instance.subscribed;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -189,16 +208,30 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
         iconTheme: const IconThemeData(color: Colors.black87),
         title: const Text(
           'Add Your License Info',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
         ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: [
+            if (!isSubscribed) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF4DB),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Uploading license for verification requires subscription.',
+                  style: TextStyle(
+                    color: Color(0xFF8A5B00),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             const Text(
               'Personal Info',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -248,10 +281,8 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
               hintText: 'MM/DD/YYYY',
               controller: _dateOfBirthController,
               readOnly: true,
-              onTap: () => _pickDate(
-                controller: _dateOfBirthController,
-                isDob: true,
-              ),
+              onTap: () =>
+                  _pickDate(controller: _dateOfBirthController, isDob: true),
               suffixIcon: const Icon(
                 Icons.calendar_month_outlined,
                 color: Color(0xFF4A4A4A),
@@ -263,10 +294,8 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
               hintText: 'MM/DD/YYYY',
               controller: _expiryDateController,
               readOnly: true,
-              onTap: () => _pickDate(
-                controller: _expiryDateController,
-                isDob: false,
-              ),
+              onTap: () =>
+                  _pickDate(controller: _expiryDateController, isDob: false),
               suffixIcon: const Icon(
                 Icons.calendar_month_outlined,
                 color: Color(0xFF4A4A4A),
@@ -301,8 +330,9 @@ class _AddLicenseInfoScreenState extends State<AddLicenseInfoScreen> {
             SizedBox(
               height: 50,
               child: ElevatedButton(
-                onPressed:
-                    _controller.canSubmit && !_isSubmitting ? _submit : null,
+                onPressed: _controller.canSubmit && !_isSubmitting
+                    ? _submit
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryBlue,
                   foregroundColor: Colors.white,
@@ -456,10 +486,8 @@ class _LabeledDropdown extends StatelessWidget {
           ),
           items: items
               .map(
-                (item) => DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                ),
+                (item) =>
+                    DropdownMenuItem<String>(value: item, child: Text(item)),
               )
               .toList(),
           onChanged: onChanged,

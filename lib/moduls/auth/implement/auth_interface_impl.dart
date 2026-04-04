@@ -1,14 +1,14 @@
-
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bighustle/core/api_handler/failure.dart';
 import 'package:flutter_bighustle/core/api_handler/success.dart';
 import 'package:flutter_bighustle/core/constants/api_endpoints.dart';
-import 'package:flutter_bighustle/core/constants/app_routes.dart';
 import 'package:flutter_bighustle/core/services/app_pigeon/app_pigeon.dart';
+import '../../profile/model/profile_data.dart';
 import '../interface/auth_interface.dart';
 import '../model/forget_password_request_model.dart';
 import '../model/login_request_model.dart';
+import '../model/login_response_model.dart';
 import '../model/logout_request_model.dart';
 import '../model/register_request_model.dart';
 import '../model/reset_password_request_model.dart';
@@ -144,46 +144,12 @@ final class AuthInterfaceImpl extends AuthInterface {
       final responseBody = response.data is Map
           ? Map<String, dynamic>.from(response.data)
           : <String, dynamic>{};
-      final responseData = responseBody["data"];
-      final payload = responseData is Map
-          ? Map<String, dynamic>.from(responseData)
-          : responseBody;
-      final userData = payload['user'] is Map
-          ? Map<String, dynamic>.from(payload['user'])
-          : payload;
-
-      String readString(dynamic value) => value?.toString() ?? '';
-      String pickFirstString(List<dynamic> values) {
-        for (final value in values) {
-          final stringValue = readString(value);
-          if (stringValue.isNotEmpty) {
-            return stringValue;
-          }
-        }
-        return '';
-      }
-
-      final accessToken = pickFirstString([
-        payload['accessToken'],
-        payload['token'],
-        responseBody['accessToken'],
-        responseBody['token'],
-      ]);
-      var refreshToken = pickFirstString([
-        payload['refreshToken'],
-        responseBody['refreshToken'],
-      ]);
-      if (refreshToken.isEmpty) {
-        refreshToken = accessToken;
-      }
-      final role = pickFirstString([
-        userData['role'],
-        payload['role'],
-        responseBody['role'],
-      ]);
+      final loginResponse = LoginResponseModel.fromJson(responseBody);
+      final accessToken = loginResponse.accessToken;
+      final refreshToken = loginResponse.refreshToken;
+      final role = loginResponse.role;
 
       if (accessToken.isEmpty) {
-        AppRoutes.login;
         return Left(
           DataCRUDFailure(
             failure: Failure.dioFailure,
@@ -193,23 +159,21 @@ final class AuthInterfaceImpl extends AuthInterface {
         );
       }
 
-      final userId = pickFirstString([
-        userData['id'],
-        userData['_id'],
-        payload['userId'],
-        payload['_id'],
-        responseBody['userId'],
-        responseBody['_id'],
-      ]);
-
       // Save tokens directly using AppPigeon service
       await appPigeon.saveNewAuth(
         saveAuthParams: SaveNewAuthParams(
           accessToken: accessToken,
           refreshToken: refreshToken,
-          data: userData,
-          uid: userId.isNotEmpty ? userId : null,
+          data: loginResponse.authData,
+          uid: loginResponse.userId.isNotEmpty ? loginResponse.userId : null,
         ),
+      );
+      ProfileData.instance.updateSubscription(
+        subscribed: loginResponse.subscribed,
+        planName: loginResponse.planName,
+        subscriptionInterval: loginResponse.subscriptionInterval,
+        subscriptionStartsAt: loginResponse.subscriptionStartsAt,
+        subscriptionEndsAt: loginResponse.subscriptionEndsAt,
       );
 
       return Right(Success(data: role));
@@ -244,10 +208,7 @@ final class AuthInterfaceImpl extends AuthInterface {
   }) async {
     return await asyncTryCatch(
       tryFunc: () async {
-        final response = await appPigeon.post(
-          ApiEndpoints.forgetPassword,
-          data: param.toJson(),
-        );
+        await appPigeon.post(ApiEndpoints.forgetPassword, data: param.toJson());
         return Success(message: 'OTP send to your mail', data: '');
       },
     );
@@ -300,10 +261,7 @@ final class AuthInterfaceImpl extends AuthInterface {
   }) async {
     return await asyncTryCatch(
       tryFunc: () async {
-        final response = await appPigeon.put(
-          ApiEndpoints.resetPassword,
-          data: param.toJson(),
-        );
+        await appPigeon.put(ApiEndpoints.resetPassword, data: param.toJson());
         return Success(message: 'Password reset successfully', data: '');
       },
     );
@@ -316,10 +274,7 @@ final class AuthInterfaceImpl extends AuthInterface {
   }) async {
     return await asyncTryCatch(
       tryFunc: () async {
-        await appPigeon.post(
-          ApiEndpoints.changePassword,
-          data: param.toJson(),
-        );
+        await appPigeon.post(ApiEndpoints.changePassword, data: param.toJson());
         return Success(message: 'Password changed successfully', data: '');
       },
     );

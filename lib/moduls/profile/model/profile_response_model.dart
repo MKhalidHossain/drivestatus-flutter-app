@@ -16,6 +16,11 @@ class ProfileResponseModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? dateOfBirth;
+  final bool subscribed;
+  final String planName;
+  final String subscriptionInterval;
+  final String subscriptionStartsAt;
+  final String subscriptionEndsAt;
 
   const ProfileResponseModel({
     required this.id,
@@ -35,6 +40,11 @@ class ProfileResponseModel {
     required this.createdAt,
     required this.updatedAt,
     required this.dateOfBirth,
+    required this.subscribed,
+    required this.planName,
+    required this.subscriptionInterval,
+    required this.subscriptionStartsAt,
+    required this.subscriptionEndsAt,
   });
 
   factory ProfileResponseModel.fromJson(Map<String, dynamic> json) {
@@ -66,6 +76,77 @@ class ProfileResponseModel {
 
     final primaryId = readString(json['_id']);
     final fallbackId = readString(json['id']);
+    final currentPlan = json['currentPlan'];
+    final activePlan = json['activePlan'];
+    String readSubscriptionInterval() {
+      final direct = readString(json['subscriptionInterval']);
+      if (direct.isNotEmpty) return direct;
+      if (currentPlan is Map) {
+        final fromCurrent = readString(currentPlan['interval']);
+        if (fromCurrent.isNotEmpty) return fromCurrent;
+      }
+      if (activePlan is Map) {
+        final fromActive = readString(activePlan['interval']);
+        if (fromActive.isNotEmpty) return fromActive;
+      }
+      return readString(json['interval']);
+    }
+
+    String readPlanName() {
+      final direct = readString(json['planName']);
+      if (direct.isNotEmpty) return direct;
+      if (currentPlan is Map) {
+        final fromCurrent = readString(currentPlan['name']);
+        if (fromCurrent.isNotEmpty) return fromCurrent;
+      }
+      if (activePlan is Map) {
+        final fromActive = readString(activePlan['name']);
+        if (fromActive.isNotEmpty) return fromActive;
+      }
+      return '';
+    }
+
+    String readSubscriptionStartsAt() {
+      final direct = readString(
+        json['subscriptionStartsAt'] ??
+            json['subscriptionStartAt'] ??
+            json['subscriptionStartDate'],
+      );
+      if (direct.isNotEmpty) return direct;
+      final subscription = json['subscription'];
+      if (subscription is Map) {
+        final fromSubscription = readString(
+          subscription['startsAt'] ??
+              subscription['startAt'] ??
+              subscription['startDate'] ??
+              subscription['subscriptionStartsAt'],
+        );
+        if (fromSubscription.isNotEmpty) return fromSubscription;
+      }
+      return '';
+    }
+
+    String readSubscriptionEndsAt() {
+      final direct = readString(
+        json['subscriptionEndsAt'] ??
+            json['subscriptionEndAt'] ??
+            json['subscriptionEndDate'],
+      );
+      if (direct.isNotEmpty) return direct;
+      final subscription = json['subscription'];
+      if (subscription is Map) {
+        final fromSubscription = readString(
+          subscription['endsAt'] ??
+              subscription['endAt'] ??
+              subscription['endDate'] ??
+              subscription['subscriptionEndsAt'] ??
+              subscription['expireAt'] ??
+              subscription['expiresAt'],
+        );
+        if (fromSubscription.isNotEmpty) return fromSubscription;
+      }
+      return '';
+    }
 
     return ProfileResponseModel(
       id: primaryId.isNotEmpty ? primaryId : fallbackId,
@@ -87,6 +168,11 @@ class ProfileResponseModel {
       createdAt: readDate(json['createdAt']),
       updatedAt: readDate(json['updatedAt']),
       dateOfBirth: readDate(json['dob']),
+      subscribed: readBool(json['subscribed'] ?? json['isSubscribed']),
+      planName: readPlanName(),
+      subscriptionInterval: readSubscriptionInterval(),
+      subscriptionStartsAt: readSubscriptionStartsAt(),
+      subscriptionEndsAt: readSubscriptionEndsAt(),
     );
   }
 }

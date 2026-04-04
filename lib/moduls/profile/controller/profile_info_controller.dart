@@ -21,7 +21,6 @@ class ProfileInfoController {
 
       result.fold(
         (failure) {
-          ProfileData.instance.resetDefaults();
           snackbarNotifier?.notifyError(
             message: failure.uiMessage.isNotEmpty
                 ? failure.uiMessage
@@ -33,7 +32,6 @@ class ProfileInfoController {
           if (profile != null) {
             _applyProfile(profile);
           } else {
-            ProfileData.instance.resetDefaults();
             snackbarNotifier?.notifyError(message: 'Profile data unavailable');
           }
         },

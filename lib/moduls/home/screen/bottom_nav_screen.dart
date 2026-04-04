@@ -23,10 +23,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
@@ -60,31 +57,6 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  final String title;
-
-  const _PlaceholderTab({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
-      body: SafeArea(
-        child: Center(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: (size.width * 0.06).clamp(18.0, 26.0),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
       ),
     );
   }

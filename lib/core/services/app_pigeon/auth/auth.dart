@@ -1,6 +1,6 @@
 part of '../app_pigeon.dart';
 
-base class Auth{
+base class Auth {
   final String? _accessToken;
   final String? _refreshToken;
   final Map<String, dynamic> data;
@@ -9,18 +9,19 @@ base class Auth{
     required String? accessToken,
     required String? refreshToken,
     required this.data,
-  }): _accessToken = accessToken, _refreshToken = refreshToken;
+  }) : _accessToken = accessToken,
+       _refreshToken = refreshToken;
 
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
 
   bool get isVerified => _accessToken != null && _refreshToken != null;
-  
+
   Auth copyWith({
     String? accessToken,
     String? refreshToken,
-    DateTime ? accessTokenExpiresAt,
-    DateTime ? refreshTokenExpiresAt
+    DateTime? accessTokenExpiresAt,
+    DateTime? refreshTokenExpiresAt,
   }) {
     return Auth._internal(
       accessToken: accessToken ?? _accessToken,
@@ -39,12 +40,15 @@ base class Auth{
 
   static Auth? _tryFromJsonString(String source) {
     try {
-      debugPrint("Trying to decode source: $source");
+      AuthDebugger().dekhao({
+        "type": "AUTH_STORAGE",
+        "action": "Trying to decode source",
+        "source": source,
+      });
       return Auth.fromMap(jsonDecode(source));
     } catch (e) {
       return null;
     }
-    
   }
 
   Map<String, dynamic> toJson() {
@@ -73,5 +77,3 @@ base class Auth{
   @override
   int get hashCode => Object.hash(_accessToken, _refreshToken, data);
 }
-
-
