@@ -137,14 +137,33 @@ class AuthService extends Interceptor {
               queryParameters: requestOptions.queryParameters,
             );
             return handler.resolve(cloneReq);
-          } catch (e) {
-            return handler.reject(e as DioException);
+          } catch (e, stackTrace) {
+            final clonedRequestError = e is DioException
+                ? e
+                : DioException(
+                    requestOptions: requestOptions,
+                    type: DioExceptionType.unknown,
+                    error: e,
+                    stackTrace: stackTrace,
+                  );
+            return handler.reject(clonedRequestError);
           }
         });
-      } catch (e) {
-        _authStorage.clearCurrentAuthRecord();
+      } catch (e, stackTrace) {
         _refreshingToken = false;
-        return handler.reject(e as DioException);
+        final refreshError = e is DioException
+            ? e
+            : DioException(
+                requestOptions: err.requestOptions,
+                type: DioExceptionType.unknown,
+                error: e,
+                stackTrace: stackTrace,
+              );
+        final refreshStatus = refreshError.response?.statusCode;
+        if (refreshStatus == 401 || refreshStatus == 403) {
+          await _authStorage.clearCurrentAuthRecord();
+        }
+        return handler.reject(refreshError);
       }
     } else {
       _authDebugger.dekhao(
