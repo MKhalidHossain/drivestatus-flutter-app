@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bighustle/core/common/common/app_logo.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_routes.dart';
@@ -231,14 +232,19 @@ class _HomeScreenState extends State<HomeScreen> {
               /// ---------------- HEADER ----------------
               Row(
                 children: [
-                  Text(
-                    'Logo',
-                    style: TextStyle(
-                      color: const Color(0xFF3F76F6),
-                      fontWeight: FontWeight.w700,
-                      fontSize: (size.width * 0.03).clamp(18.0, 28.0),
-                    ),
-                  ),
+                 SizedBox(
+                  height: size.width * 0.2,
+                    width: size.width * 0.2,
+                  child: AppLogo()),
+                 
+                  // Text(
+                  //   'Logo',
+                  //   style: TextStyle(
+                  //     color: const Color(0xFF3F76F6),
+                  //     fontWeight: FontWeight.w700,
+                  //     fontSize: (size.width * 0.03).clamp(18.0, 28.0),
+                  //   ),
+                  // ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () =>
