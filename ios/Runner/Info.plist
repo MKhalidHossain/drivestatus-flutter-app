@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Bighustle</string>
+	<string>Drive Status</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>flutter_bighustle</string>
+	<string>Drive Status</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -40,16 +40,15 @@
 	<true/>
 
 	<!-- ✅ CAMERA - Required for license photo capture -->
-	<key>NSCameraUsageDescription</key>
-	<string>Bighustle needs camera access to capture your driver license photo and profile picture.</string>
+	
+    <key>NSCameraUsageDescription</key>
+    <string>Drive Status needs camera access to capture your driver license photo and profile picture.</string>
 
-	<!-- ✅ PHOTO LIBRARY READ - Required for uploading license/profile images -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Bighustle needs access to your photo library to upload your driver license and profile photo.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Drive Status needs access to your photo library to upload your driver license and profile photo.</string>
 
-	<!-- ✅ PHOTO LIBRARY ADD - Required if saving images to library -->
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Bighustle needs permission to save photos to your library.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Drive Status needs permission to save photos to your library.</string>
 
 	<!-- ✅ FACE ID - Add if your app uses biometric authentication -->
 	<!-- <key>NSFaceIDUsageDescription</key> -->
