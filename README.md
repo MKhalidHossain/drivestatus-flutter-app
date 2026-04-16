@@ -16,21 +16,6 @@ The codebase is organized for scalability, with clear separation between interfa
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Core Features](#core-features)
-- [Modules and Screens](#modules-and-screens)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Configuration](#configuration)
-- [Getting Started](#getting-started)
-- [Development Notes](#development-notes)
-- [Security Notes](#security-notes)
-
----
-
 ## Overview
 
 | Item | Details |
