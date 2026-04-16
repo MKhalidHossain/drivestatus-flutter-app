@@ -179,9 +179,6 @@ class LoginResponseModel {
       data['refreshToken'],
       responseBody['refreshToken'],
     ]);
-    if (refreshToken.isEmpty) {
-      refreshToken = accessToken;
-    }
     final userId = pickFirstString([
       userData['id'],
       userData['_id'],

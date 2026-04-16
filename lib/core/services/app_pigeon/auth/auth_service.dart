@@ -37,6 +37,44 @@ class AuthService extends Interceptor {
 
   bool _refreshingToken = false;
 
+  String _extractErrorMessage(DioException error) {
+    final responseData = error.response?.data;
+    if (responseData is Map) {
+      final message = responseData["message"]?.toString().trim();
+      if (message != null && message.isNotEmpty) {
+        return message;
+      }
+      final nestedError = responseData["error"]?.toString().trim();
+      if (nestedError != null && nestedError.isNotEmpty) {
+        return nestedError;
+      }
+    }
+
+    final underlyingError = error.error?.toString().trim() ?? "";
+    if (underlyingError.isNotEmpty) {
+      return underlyingError;
+    }
+    return (error.message ?? "").trim();
+  }
+
+  bool _shouldClearAuthAfterRefreshFailure(DioException error) {
+    final statusCode = error.response?.statusCode;
+    final message = _extractErrorMessage(error).toLowerCase();
+
+    if (statusCode == 401 || statusCode == 403) {
+      return true;
+    }
+
+    if (statusCode == 400 && message.contains('refresh')) {
+      return true;
+    }
+
+    return (message.contains('invalid') && message.contains('refresh')) ||
+        (message.contains('expired') && message.contains('refresh')) ||
+        message.contains('refresh token missing') ||
+        message.contains('no access token');
+  }
+
   /// Attach access token to every request
   @override
   Future<void> onRequest(
@@ -106,12 +144,17 @@ class AuthService extends Interceptor {
     }
 
     if (err.response?.statusCode == 401 && (status is Authenticated)) {
+      final refreshToken = status.auth._refreshToken?.trim() ?? "";
+      if (refreshToken.isEmpty) {
+        await _authStorage.clearCurrentAuthRecord();
+        return handler.reject(err);
+      }
       // get new access token
       RefreshTokenResponse refreshTokenResponse;
       try {
         _refreshingToken = true;
         refreshTokenResponse = await refreshTokenManager.refreshToken(
-          refreshToken: status.auth._refreshToken ?? "",
+          refreshToken: refreshToken,
         );
         _refreshingToken = false;
         await _authStorage.updateCurrentAuth(
@@ -159,8 +202,7 @@ class AuthService extends Interceptor {
                 error: e,
                 stackTrace: stackTrace,
               );
-        final refreshStatus = refreshError.response?.statusCode;
-        if (refreshStatus == 401 || refreshStatus == 403) {
+        if (_shouldClearAuthAfterRefreshFailure(refreshError)) {
           await _authStorage.clearCurrentAuthRecord();
         }
         return handler.reject(refreshError);

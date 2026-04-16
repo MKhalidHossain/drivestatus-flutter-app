@@ -64,9 +64,6 @@ final class AuthInterfaceImpl extends AuthInterface {
           payload['refreshToken'],
           responseBody['refreshToken'],
         ]);
-        if (refreshToken.isEmpty) {
-          refreshToken = accessToken;
-        }
         final userId = pickFirstString([
           userData['id'],
           userData['_id'],
@@ -155,6 +152,15 @@ final class AuthInterfaceImpl extends AuthInterface {
             failure: Failure.dioFailure,
             fullError: 'Invalid token data',
             uiMessage: 'Authentication failed. Please try again.',
+          ),
+        );
+      }
+      if (refreshToken.isEmpty) {
+        return Left(
+          DataCRUDFailure(
+            failure: Failure.dioFailure,
+            fullError: 'Refresh token missing in login response',
+            uiMessage: 'Authentication failed. Please log in again.',
           ),
         );
       }

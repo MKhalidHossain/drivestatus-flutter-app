@@ -39,9 +39,7 @@ class RefreshTokenManager implements RefreshTokenManagerInterface {
   Future<RefreshTokenResponse> refreshToken({
     required String refreshToken,
   }) async {
-    AuthDebugger().dekhao(
-      "Refreshing token with url: $url, refreshToken: $refreshToken",
-    );
+    AuthDebugger().dekhao("Refreshing token with url: $url");
     final response = await _dio.post(url, data: {"refreshToken": refreshToken});
     debugPrint("Refresh token response: ${response.data}");
     final responseBody = response.data is Map
@@ -74,13 +72,20 @@ class RefreshTokenManager implements RefreshTokenManagerInterface {
       responseBody["refreshToken"],
       refreshToken,
     ]);
+    final errorMessage = pickFirstString([
+      data["message"],
+      responseBody["message"],
+      responseBody["error"],
+    ]);
 
     if (accessToken.isEmpty) {
       throw DioException(
         requestOptions: response.requestOptions,
         response: response,
         type: DioExceptionType.badResponse,
-        error: "Refresh token API returned no access token",
+        error: errorMessage.isNotEmpty
+            ? errorMessage
+            : "Refresh token API returned no access token",
       );
     }
 
