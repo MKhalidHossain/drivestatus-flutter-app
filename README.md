@@ -22,7 +22,7 @@ The codebase is organized for scalability, with clear separation between interfa
 |------|---------|
 | **App Name** | Bighustle |
 | **Package Name** | `flutter_bighustle` |
-| **Platforms** | Android, iOS, Web, Desktop |
+| **Platforms** | Android, iOS |
 | **SDK** | Dart `^3.10.1` |
 | **Version** | `1.0.0+1` |
 | **Architecture Style** | Feature-module layout |
