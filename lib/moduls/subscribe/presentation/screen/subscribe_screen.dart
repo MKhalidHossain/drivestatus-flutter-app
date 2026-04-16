@@ -74,10 +74,7 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
   }
 
   String _normalizeInterval(String interval) {
-    final value = interval.toLowerCase();
-    if (value.startsWith('year')) return 'year';
-    if (value.startsWith('month')) return 'month';
-    return value;
+    return SubscriptionAccess.normalizeInterval(interval);
   }
 
   _BillingCycle? _toCycle(String interval) {
@@ -138,43 +135,12 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
     return value.toUpperCase();
   }
 
-  String _activeSubscribedInterval(List<PlanModel> plans) {
-    if (!ProfileData.instance.subscribed) return '';
-
-    final fromProfile = _normalizeInterval(
-      ProfileData.instance.subscriptionInterval,
-    );
-    if (fromProfile == 'month' || fromProfile == 'year') {
-      return fromProfile;
-    }
-
-    final planName = ProfileData.instance.planName.trim().toLowerCase();
-    if (planName.isNotEmpty) {
-      for (final plan in plans) {
-        if (plan.name.trim().toLowerCase() == planName) {
-          final matched = _normalizeInterval(plan.interval);
-          if (matched == 'month' || matched == 'year') {
-            return matched;
-          }
-        }
-      }
-      if (planName.contains('year')) return 'year';
-      if (planName.contains('month')) return 'month';
-    }
-
-    return '';
-  }
-
   bool _isLockedBySubscription({
     required PlanModel plan,
-    required String activeSubscribedInterval,
+    required bool hasActiveSubscription,
   }) {
-    if (activeSubscribedInterval.isEmpty) return false;
-    if (activeSubscribedInterval == 'year') {
-      // A yearly subscriber should not purchase monthly again.
-      return true;
-    }
-    return _normalizeInterval(plan.interval) == activeSubscribedInterval;
+    if (!hasActiveSubscription) return false;
+    return plan.price > 0;
   }
 
   String _yearlyEquivalentText(PlanModel plan) {
@@ -208,14 +174,19 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
   }
 
   void _selectPlan(PlanModel plan) {
-    final activeSubscribedInterval = _activeSubscribedInterval(
-      _controller.plans,
-    );
+    final hasActiveSubscription =
+        SubscriptionAccess.isCurrentSubscriptionActive();
     final isLocked = _isLockedBySubscription(
       plan: plan,
-      activeSubscribedInterval: activeSubscribedInterval,
+      hasActiveSubscription: hasActiveSubscription,
     );
-    if (isLocked) return;
+    if (isLocked) {
+      final blockMessage = SubscriptionAccess.activeSubscriptionBlockMessage();
+      if (blockMessage != null) {
+        _snackbarNotifier.notify(message: blockMessage);
+      }
+      return;
+    }
     _controller.selectPlan(plan);
     final cycle = _toCycle(plan.interval);
     if (cycle != null) {
@@ -254,6 +225,38 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildActiveSubscriptionBanner(String message) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF1FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFC8DBFF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(Icons.info_outline, color: _primaryBlue, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Color(0xFF1849A9),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -546,7 +549,7 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text('Already Subscribed ($cycleLabel)'),
+                    child: const Text('Subscription Active'),
                   )
                 : (isSelected
                       ? ElevatedButton(
@@ -611,7 +614,10 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
           final hasPlans = _controller.hasPlans;
           final allPlans = _controller.plans;
           final activeInterval = _activeInterval(allPlans);
-          final activeSubscribedInterval = _activeSubscribedInterval(allPlans);
+          final hasActiveSubscription =
+              SubscriptionAccess.isCurrentSubscriptionActive();
+          final activeSubscriptionMessage =
+              SubscriptionAccess.activeSubscriptionBlockMessage();
           final scopedPlans = _plansForInterval(allPlans, activeInterval);
           final availableCycles = _availableCycles(allPlans);
           final currentPlan =
@@ -635,6 +641,10 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                   vertical: 12,
                 ),
                 children: [
+                  if (hasActiveSubscription &&
+                      activeSubscriptionMessage != null &&
+                      activeSubscriptionMessage.isNotEmpty)
+                    _buildActiveSubscriptionBanner(activeSubscriptionMessage),
                   if (hasPlans)
                     _buildCycleSelector(
                       availableCycles: availableCycles,
@@ -681,7 +691,7 @@ class _SubscribeScreenState extends State<SubscribeScreen> {
                       () {
                         final isLockedForSubscription = _isLockedBySubscription(
                           plan: plan,
-                          activeSubscribedInterval: activeSubscribedInterval,
+                          hasActiveSubscription: hasActiveSubscription,
                         );
                         final card = _buildPlanCard(
                           scopedPlans: scopedPlans,

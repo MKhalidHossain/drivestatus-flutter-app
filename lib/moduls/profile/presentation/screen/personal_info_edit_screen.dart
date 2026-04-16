@@ -123,13 +123,14 @@ class _PersonalInfoEditScreenState extends State<PersonalInfoEditScreen> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Done',
-              style: TextStyle(color: _primaryBlue),
-            ),
-          ),
+          SizedBox()
+          // TextButton(
+          //   onPressed: () => Navigator.pop(context),
+          //   child: const Text(
+          //     'Done',
+          //     style: TextStyle(color: _primaryBlue),
+          //   ),
+          // ),
         ],
       ),
       body: Column(

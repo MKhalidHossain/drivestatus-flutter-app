@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:get/get.dart';
 import '../../../core/api_handler/failure.dart';
+import '../../../core/api_handler/success.dart';
 import '../../../core/constants/stripe_config.dart';
+import '../../../core/helpers/subscription_access.dart';
 import '../../../core/helpers/validation.dart';
 import '../../../core/notifiers/snackbar_notifier.dart';
 import '../../../core/services/app_pigeon/app_pigeon.dart';
@@ -94,9 +96,9 @@ class SubscribePaymentController extends ChangeNotifier {
       final paymentData = await _createPayment(billingInfo, snackbarNotifier);
       if (paymentData == null) return false;
 
-      print('Stripe: init payment sheet');
+      debugPrint('Stripe: init payment sheet');
       await _presentPaymentSheet(billingInfo, paymentData);
-      print('Stripe: payment sheet completed');
+      debugPrint('Stripe: payment sheet completed');
       success = await _confirmPayment(paymentData, snackbarNotifier);
     } on TimeoutException {
       snackbarNotifier.notifyError(
@@ -130,6 +132,12 @@ class SubscribePaymentController extends ChangeNotifier {
       snackbarNotifier.notify(message: 'You are already on this plan.');
       return false;
     }
+    final activeSubscriptionMessage =
+        SubscriptionAccess.activeSubscriptionBlockMessage();
+    if (activeSubscriptionMessage != null) {
+      snackbarNotifier.notify(message: activeSubscriptionMessage);
+      return false;
+    }
     if (StripeConfig.publishableKey.isEmpty ||
         StripeConfig.publishableKey.contains('replace_with_your_key')) {
       snackbarNotifier.notifyError(
@@ -140,7 +148,10 @@ class SubscribePaymentController extends ChangeNotifier {
     return true;
   }
 
-  void _handlePlanLoadFailure(failure, SnackbarNotifier? snackbarNotifier) {
+  void _handlePlanLoadFailure(
+    DataCRUDFailure failure,
+    SnackbarNotifier? snackbarNotifier,
+  ) {
     snackbarNotifier?.notifyError(
       message: failure.uiMessage.isNotEmpty
           ? failure.uiMessage
@@ -152,7 +163,7 @@ class SubscribePaymentController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _handlePlanLoadSuccess(success) {
+  void _handlePlanLoadSuccess(Success<List<PlanModel>> success) {
     final fetchedPlans = _normalizePlans(success.data ?? <PlanModel>[]);
     _plans
       ..clear()
@@ -230,6 +241,39 @@ class SubscribePaymentController extends ChangeNotifier {
     return '';
   }
 
+  Future<void> _persistSubscriptionToCurrentAuth({
+    required bool subscribed,
+    required String planName,
+    required String subscriptionInterval,
+    required String subscriptionStartsAt,
+    required String subscriptionEndsAt,
+  }) async {
+    try {
+      final appPigeon = Get.find<AppPigeon>();
+      final status = await appPigeon.currentAuth();
+      if (status is! Authenticated) return;
+
+      final accessToken = status.auth.accessToken ?? '';
+      final refreshToken = status.auth.refreshToken ?? '';
+      if (accessToken.isEmpty || refreshToken.isEmpty) return;
+
+      final authData = Map<String, dynamic>.from(status.auth.data);
+      authData['subscribed'] = subscribed;
+      authData['planName'] = planName;
+      authData['subscriptionInterval'] = subscriptionInterval;
+      authData['subscriptionStartsAt'] = subscriptionStartsAt;
+      authData['subscriptionEndsAt'] = subscriptionEndsAt;
+
+      await appPigeon.updateCurrentAuth(
+        updateAuthParams: UpdateAuthParams(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          data: authData,
+        ),
+      );
+    } catch (_) {}
+  }
+
   _BillingInfo _readBillingFromProfileData() {
     return _BillingInfo(
       email: _readString(ProfileData.instance.email),
@@ -255,8 +299,6 @@ class SubscribePaymentController extends ChangeNotifier {
     if (status is! Authenticated) return const _BillingInfo.empty();
 
     final authData = status.auth.data;
-    if (authData is! Map) return const _BillingInfo.empty();
-
     var billing = _readBillingFromMap(authData);
     final userData = authData['user'];
     if (userData is Map) {
@@ -314,7 +356,7 @@ class SubscribePaymentController extends ChangeNotifier {
     SnackbarNotifier snackbarNotifier,
   ) async {
     debugPrint('Stripe: createPayment start');
-    print(
+    debugPrint(
       'Stripe: createPlanPayment planId=${_selectedPlan?.id} email=${billingInfo.email} name=${billingInfo.name}',
     );
     final createResult = await _planInterface
@@ -389,7 +431,7 @@ class SubscribePaymentController extends ChangeNotifier {
       name: billingInfo.name.isNotEmpty ? billingInfo.name : null,
     );
 
-    print('Stripe: initPaymentSheet start');
+    debugPrint('Stripe: initPaymentSheet start');
     await Stripe.instance
         .initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
@@ -402,14 +444,14 @@ class SubscribePaymentController extends ChangeNotifier {
         )
         .timeout(const Duration(seconds: 25));
 
-    print('Stripe: initPaymentSheet done');
-    print('Stripe: presentPaymentSheet start');
+    debugPrint('Stripe: initPaymentSheet done');
+    debugPrint('Stripe: presentPaymentSheet start');
     await Stripe.instance
         .presentPaymentSheet(
           options: const PaymentSheetPresentOptions(timeout: 45000),
         )
         .timeout(const Duration(seconds: 60));
-    print('Stripe: presentPaymentSheet done');
+    debugPrint('Stripe: presentPaymentSheet done');
   }
 
   Future<bool> _confirmPayment(
@@ -418,7 +460,7 @@ class SubscribePaymentController extends ChangeNotifier {
   ) async {
     const maxAttempts = 4;
     for (var attempt = 0; attempt < maxAttempts; attempt += 1) {
-      print('Stripe: confirm attempt ${attempt + 1}/$maxAttempts');
+      debugPrint('Stripe: confirm attempt ${attempt + 1}/$maxAttempts');
       final confirmResult = await _planInterface
           .confirmPlanPayment(
             paymentId: paymentData.paymentId,
@@ -476,19 +518,56 @@ class SubscribePaymentController extends ChangeNotifier {
       }
 
       final status = payment.status.toLowerCase();
-      if (status == 'paid') {
+      final isPaid =
+          status == 'paid' || status == 'success' || status == 'succeeded';
+      if (isPaid) {
         snackbarNotifier.notifySuccess(message: outcome.message);
+        final selectedPlan = _selectedPlan;
+        final nowUtc = DateTime.now().toUtc();
+        final startsAtIso = payment.subscriptionStartsAt.isNotEmpty
+            ? payment.subscriptionStartsAt
+            : nowUtc.toIso8601String();
+        final fallbackInterval = payment.subscriptionInterval.isNotEmpty
+            ? payment.subscriptionInterval
+            : (selectedPlan?.interval ?? '');
+        final estimatedEndsAt = SubscriptionAccess.estimateSubscriptionEndsAt(
+          startsAtUtc: DateTime.tryParse(startsAtIso)?.toUtc() ?? nowUtc,
+          interval: fallbackInterval,
+        );
+        final endsAtIso = estimatedEndsAt?.toIso8601String() ?? '';
+        final resolvedEndsAt = payment.subscriptionEndsAt.isNotEmpty
+            ? payment.subscriptionEndsAt
+            : endsAtIso;
+        final resolvedInterval = payment.subscriptionInterval.isNotEmpty
+            ? payment.subscriptionInterval
+            : (selectedPlan?.interval ?? '');
+        final resolvedPlanName = payment.planName.isNotEmpty
+            ? payment.planName
+            : (selectedPlan?.name ?? '');
+        const resolvedSubscribed = true;
+
         _currentPlan = _selectedPlan;
         ProfileData.instance.updateSubscription(
-          subscribed: true,
-          planName: _selectedPlan?.name ?? '',
-          subscriptionInterval: _selectedPlan?.interval ?? '',
+          subscribed: resolvedSubscribed,
+          planName: resolvedPlanName,
+          subscriptionInterval: resolvedInterval,
+          subscriptionStartsAt: startsAtIso,
+          subscriptionEndsAt: resolvedEndsAt,
+        );
+        await _persistSubscriptionToCurrentAuth(
+          subscribed: resolvedSubscribed,
+          planName: resolvedPlanName,
+          subscriptionInterval: resolvedInterval,
+          subscriptionStartsAt: startsAtIso,
+          subscriptionEndsAt: resolvedEndsAt,
         );
         notifyListeners();
         return true;
       }
 
-      if (status == 'processing' && attempt < maxAttempts - 1) {
+      final isProcessingLike =
+          status == 'processing' || status == 'created' || status == 'pending';
+      if (isProcessingLike && attempt < maxAttempts - 1) {
         await Future.delayed(const Duration(seconds: 2));
         continue;
       }

@@ -39,6 +39,11 @@ class PlanPaymentModel {
   final String currency;
   final String status;
   final String providerPaymentId;
+  final String planName;
+  final String subscriptionInterval;
+  final String subscriptionStartsAt;
+  final String subscriptionEndsAt;
+  final bool subscribed;
 
   const PlanPaymentModel({
     required this.id,
@@ -48,9 +53,27 @@ class PlanPaymentModel {
     required this.currency,
     required this.status,
     required this.providerPaymentId,
+    this.planName = '',
+    this.subscriptionInterval = '',
+    this.subscriptionStartsAt = '',
+    this.subscriptionEndsAt = '',
+    this.subscribed = false,
   });
 
   factory PlanPaymentModel.fromJson(Map<String, dynamic> json) {
+    bool readBool(dynamic value) {
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is String) {
+        final normalized = value.trim().toLowerCase();
+        return normalized == 'true' || normalized == '1' || normalized == 'yes';
+      }
+      return false;
+    }
+
+    String readString(dynamic value) => value?.toString().trim() ?? '';
+    final subscription = json['subscription'];
+
     return PlanPaymentModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       planId: json['planId']?.toString() ?? '',
@@ -64,6 +87,26 @@ class PlanPaymentModel {
           json['paymentIntentId']?.toString() ??
           json['payment_intent']?.toString() ??
           '',
+      planName: readString(
+        json['planName'] ??
+            (subscription is Map ? subscription['planName'] : null),
+      ),
+      subscriptionInterval: readString(
+        json['subscriptionInterval'] ??
+            (subscription is Map ? subscription['subscriptionInterval'] : null),
+      ),
+      subscriptionStartsAt: readString(
+        json['subscriptionStartsAt'] ??
+            (subscription is Map ? subscription['subscriptionStartsAt'] : null),
+      ),
+      subscriptionEndsAt: readString(
+        json['subscriptionEndsAt'] ??
+            (subscription is Map ? subscription['subscriptionEndsAt'] : null),
+      ),
+      subscribed: readBool(
+        json['subscribed'] ??
+            (subscription is Map ? subscription['subscribed'] : null),
+      ),
     );
   }
 }
