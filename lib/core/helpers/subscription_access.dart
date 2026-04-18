@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../constants/app_routes.dart';
 import '../../moduls/profile/model/profile_data.dart';
-import '../../moduls/subscribe/presentation/screen/subscribe_screen.dart';
 import '../services/app_pigeon/app_pigeon.dart';
 
 class SubscriptionAccess {
@@ -296,10 +296,7 @@ class SubscriptionAccess {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SubscribeScreen()),
-                );
+                Navigator.pushNamed(context, AppRoutes.subscriptions);
               },
               child: const Text('View Plans'),
             ),
