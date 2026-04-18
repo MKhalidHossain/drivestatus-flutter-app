@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter_bighustle/core/constants/app_routes.dart';
 import 'package:flutter_bighustle/core/di/external_service_di.dart';
 import 'package:flutter_bighustle/core/di/internal_service_di.dart';
@@ -22,17 +23,51 @@ import 'package:flutter_bighustle/moduls/ticket/presentation/screen/notification
 import 'package:flutter_bighustle/moduls/ticket/presentation/screen/ticket_details_screen.dart';
 import 'package:flutter_bighustle/moduls/ticket/presentation/screen/ticket_screen.dart';
 import 'package:flutter_bighustle/moduls/notification/presentation/screen/notification_screen.dart';
+import 'package:flutter_bighustle/moduls/subscribe/presentation/screen/subscription_screen.dart';
+import 'package:flutter_bighustle/moduls/subscribe/service/subscription_service.dart';
 import 'moduls/profile/presentation/screen/profile_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   externalServiceDI();
   initServices();
-  runApp(const MyApp());
+
+  // Start listening to subscription updates as early as possible so delayed
+  // purchase callbacks from the stores are not missed.
+  await Get.find<SubscriptionService>().initialize();
+
+  runApp(MyApp(subscriptionService: Get.find<SubscriptionService>()));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, required this.subscriptionService});
+
+  final SubscriptionService subscriptionService;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      widget.subscriptionService.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.subscriptionService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +179,10 @@ class MyApp extends StatelessWidget {
           case AppRoutes.notifications:
             return MaterialPageRoute(
               builder: (_) => const NotificationScreen(),
+            );
+          case AppRoutes.subscriptions:
+            return MaterialPageRoute(
+              builder: (_) => const SubscriptionScreen(),
             );
           default:
             return MaterialPageRoute(builder: (_) => const LoginScreen());

@@ -21,4 +21,5 @@ class AppRoutes {
   static const String community = '/community';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
+  static const String subscriptions = '/subscriptions';
 }

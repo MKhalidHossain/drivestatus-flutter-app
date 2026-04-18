@@ -9,6 +9,7 @@ import '../../moduls/notification/implement/notification_interface_impl.dart';
 import '../../moduls/notification/interface/notification_interface.dart';
 import '../../moduls/profile/implement/profile_interface_impl.dart';
 import '../../moduls/profile/interface/profile_interface.dart';
+import '../../moduls/subscribe/service/subscription_service.dart';
 import '../../moduls/ticket/implement/ticket_interface_impl.dart';
 import '../../moduls/ticket/interface/ticket_interface.dart';
 import '../services/app_pigeon/app_pigeon.dart';
@@ -28,4 +29,5 @@ void initServices() {
   Get.put<NotificationInterface>(
     NotificationInterfaceImpl(appPigeon: Get.find<AppPigeon>()),
   );
+  Get.put<SubscriptionService>(SubscriptionService(), permanent: true);
 }
